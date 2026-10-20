@@ -204,40 +204,22 @@
       "url": "https://news.google.com/rss/search?q=%28OWASP%20OR%20CVE%20OR%20%22data%20breach%22%20OR%20ransomware%20OR%20%22web%20security%22%20OR%20%22security%20vulnerability%22%29%20-crypto%20-movie&hl=en-IN&gl=IN&ceid=IN:en"
     },
     {
-      "filename": "india-jobs",
-      "title": "India IT Jobs",
-      "description": "Hiring, off-campus drives and layoffs at IT companies",
-      "maxAgeDays": 30,
-      "url": "https://news.google.com/rss/search?q=%28TCS%20OR%20Infosys%20OR%20Wipro%20OR%20HCL%20OR%20Accenture%20OR%20Cognizant%20OR%20Capgemini%29%20%28hiring%20OR%20recruitment%20OR%20vacancy%20OR%20%22off%20campus%22%20OR%20%22walk-in%22%20OR%20layoffs%29%20-movie%20-cricket%20-football&hl=en-IN&gl=IN&ceid=IN:en"
+      "filename": "india-tech-jobs",
+      "title": "India Tech Jobs",
+      "description": "Software job openings in India, straight from company career pages",
+      "type": "freehire",
+      "dedupeById": true,
+      "maxAgeDays": 7,
+      "url": "https://freehire.me/api/v1/jobs/search?limit=50&countries=IN&is_tech=tech&posted_within_days=7&sort=posted_at&order=desc"
     },
     {
-      "filename": "global-remote-jobs",
-      "title": "Global and Remote Jobs",
-      "description": "Visa sponsorship, work visas, H-1B and remote hiring",
-      "maxAgeDays": 30,
-      "url": "https://news.google.com/rss/search?q=%28%22visa%20sponsorship%22%20OR%20%22work%20visa%22%20OR%20%22H-1B%22%20OR%20%22remote%20job%22%20OR%20%22remote%20hiring%22%20OR%20%22work%20from%20home%22%29%20%28developer%20OR%20engineer%20OR%20%22tech%20worker%22%20OR%20IT%20OR%20Indian%29%20-movie%20-cricket&hl=en-US&gl=US&ceid=US:en"
-    },
-    {
-      "filename": "wwr-programming",
-      "title": "We Work Remotely - Programming",
-      "description": "Remote programming job postings from We Work Remotely",
-      "maxAgeDays": 30,
-      "url": "https://weworkremotely.com/categories/remote-programming-jobs.rss"
-    },
-    {
-      "filename": "hn-hiring",
-      "title": "HN Who Is Hiring",
-      "description": "Monthly Hacker News Who is hiring thread, via hnrss",
-      "maxAgeDays": 30,
-      "dedupeFullText": true,
-      "url": "https://hnrss.org/whoishiring/jobs"
-    },
-    {
-      "filename": "hasjob",
-      "title": "Hasjob India Tech",
-      "description": "Indian tech job postings from Hasjob by HasGeek",
-      "maxAgeDays": 30,
-      "url": "https://hasjob.co/feed"
+      "filename": "odisha-jobs",
+      "title": "Odisha and Rourkela Jobs",
+      "description": "Job openings in Odisha and Rourkela, straight from company career pages",
+      "type": "freehire",
+      "dedupeById": true,
+      "maxAgeDays": 14,
+      "url": "https://freehire.me/api/v1/jobs/search?limit=50&countries=IN&q=Rourkela%20OR%20Odisha&sort=posted_at&order=desc"
     },
     {
       "filename": "india-breaking",
@@ -259,14 +241,14 @@
       "filename": "odisha-breaking",
       "title": "Odisha Breaking - All Alerts",
       "description": "Every important Odisha story, merged from the category feeds",
-      "maxItems": 100,
-      "sources": ["odisha", "odisha-crime", "odisha-accident", "odisha-weather", "odisha-exams", "odisha-govt", "odisha-power", "odisha-health"]
+      "maxItems": 300,
+      "sources": ["odisha", "odisha-crime", "odisha-accident", "odisha-weather", "odisha-exams", "odisha-govt", "odisha-power", "odisha-health", "odisha-jobs"]
     },
     {
       "filename": "rourkela-breaking",
       "title": "Rourkela Breaking - All Alerts",
       "description": "Every important Rourkela story, merged from the category feeds",
-      "maxItems": 100,
+      "maxItems": 300,
       "notify": true,
       "sources": ["rourkela", "rourkela-crime", "rourkela-accident", "rourkela-weather", "rourkela-exams", "rourkela-govt", "rourkela-power", "rourkela-health", "satya-alert"]
     },
@@ -274,15 +256,22 @@
       "filename": "ai-breaking",
       "title": "AI Breaking - All Alerts",
       "description": "Every AI story, merged from the category feeds",
-      "maxItems": 100,
+      "maxItems": 300,
       "sources": ["ai-models", "ai-safety", "ai-pricing", "ai-industry"]
     },
     {
       "filename": "webdev-breaking",
       "title": "WebDev Breaking - All Alerts",
-      "description": "Every web dev and jobs story, merged from the category feeds",
-      "maxItems": 100,
-      "sources": ["webdev-frontend", "webdev-backend", "webdev-devops", "webdev-security", "india-jobs", "global-remote-jobs", "wwr-programming", "hn-hiring", "hasjob"]
+      "description": "Every web dev story, merged from the category feeds",
+      "maxItems": 300,
+      "sources": ["webdev-frontend", "webdev-backend", "webdev-devops", "webdev-security"]
+    },
+    {
+      "filename": "jobs-breaking",
+      "title": "Jobs Breaking - All Alerts",
+      "description": "Every job posting, merged from the job feeds",
+      "maxItems": 300,
+      "sources": ["india-tech-jobs", "odisha-jobs"]
     }
   ]
 }

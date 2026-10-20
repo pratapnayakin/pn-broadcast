@@ -21,6 +21,9 @@ const {
   buildFeedUrl,
   buildBundleItems,
   buildHero,
+  mapFreehireJob,
+  mapFreehireItems,
+  buildPages,
   isGoogleNewsUrl,
   validateConfig,
 } = require('./dedup.js');
@@ -290,30 +293,88 @@ const { freshItems } = require('./notify.js');
   assert.strictEqual(freshItems([], seen).length, 0, 'empty items give empty fresh');
 }
 
-// --- dedupeFullText (HN-style near-identical titles) -----------------------
-// Title-only dedupe collapses them to one; full-text keeps distinct postings
-// apart while still catching true reposts.
+// --- freehire.me mapping --------------------------------------------------
+// Job postings become items: title carries company, guid is the source id.
 {
-  const mkHN = (user, body) => ({
-    title: `New comment by ${user} in "Ask HN: Who is hiring? (September 2026)"`,
-    link: `https://news.ycombinator.com/item?id=${user}`,
-    contentSnippet: body,
+  const job = {
+    title: 'Embedded Software Manager',
+    company: 'Toyota Tsusho Nexty Electronics',
+    location: 'Noida filmcity, India',
+    skills: ['cpp', 'firmware'],
+    url: 'https://nexty-ele.zohorecruit.in/jobs/Careers/144741000002079053',
+    external_id: 'nexty-ele.zohorecruit.in:144741000002079053',
+    posted_at: '2026-10-20T20:03:31Z',
+  };
+  const item = mapFreehireJob(job);
+  assert.strictEqual(item.title, 'Embedded Software Manager at Toyota Tsusho Nexty Electronics', 'title carries company');
+  assert.strictEqual(item.link, job.url, 'link is the apply url');
+  assert.strictEqual(item.guid, job.external_id, 'guid is the stable source id');
+  assert.strictEqual(item.pubDate, job.posted_at, 'pubDate is posted_at');
+  assert(item.contentSnippet.includes('Noida filmcity'), 'description carries location');
+  assert(item.contentSnippet.includes('cpp'), 'description carries skills');
+
+  // A posting with no company must not read "at ".
+  const noCo = mapFreehireJob({ title: 'Data Analytics Intern', company: '', url: 'https://x/1', posted_at: '2026-10-20T00:00:00Z' });
+  assert.strictEqual(noCo.title, 'Data Analytics Intern', 'no company means no suffix');
+
+  // Bad rows are dropped instead of producing empty headlines.
+  const items = mapFreehireItems({ data: [job, { title: 'No link' }, { title: '', url: 'https://x/2' }] });
+  assert.strictEqual(items.length, 1, 'drops rows without title or link');
+  assert.strictEqual(mapFreehireItems({}).length, 0, 'empty payload gives no items');
+  assert.strictEqual(mapFreehireItems(null).length, 0, 'null payload gives no items');
+}
+
+// --- id dedupe (job postings) ---------------------------------------------
+// Same company, different role = different job, must NOT be merged.
+{
+  const mkJob = (role, company, id) => ({
+    title: `${role} at ${company}`,
+    link: `https://jobs.example/${id}`,
+    guid: id,
+    pubDate: 'Mon, 20 Oct 2026 10:00:00 GMT',
+    contentSnippet: `India | ${id}`,
+    _dedupeById: true,
   });
-  const a = mkHN('aaa', 'Acme Robotics seeks senior Rust engineer for warehouse automation in Berlin onsite');
-  const b = mkHN('bbb', 'Beta Health needs junior QA tester for mobile apps fully remote worldwide');
-  const c = mkHN('ccc', 'Acme Robotics seeks senior Rust engineer for warehouse automation in Berlin onsite');
+  const items = [
+    mkJob('Software Engineer, Backend', 'Glean', 'g1'),
+    mkJob('Software Engineer, Machine Learning', 'Glean', 'g2'),
+    mkJob('Product Manager', 'Glean', 'g3'),
+    mkJob('Software Engineer, Backend', 'Glean', 'g1'),
+  ];
+  const kept = buildBundleItems({ sources: ['j'], maxItems: 100 }, { j: { items } });
+  assert.strictEqual(kept.length, 3, 'distinct roles at one company all survive');
+}
 
-  // Title-only mode: all three collapse (the bug this flag fixes).
-  const titleOnly = { items: [a, b] };
-  const collapsed = buildBundleItems({ sources: ['t'], maxItems: 100 }, { t: titleOnly });
-  assert.strictEqual(collapsed.length, 1, 'title-only dedupe collapses HN-style items');
-
-  // Full-text mode: distinct postings survive, exact repost collapses.
-  a._dedupeFullText = true;
-  b._dedupeFullText = true;
-  c._dedupeFullText = true;
-  const kept = buildBundleItems({ sources: ['t'], maxItems: 100 }, { t: { items: [a, b, c] } });
-  assert.strictEqual(kept.length, 2, 'full-text keeps distinct postings, drops repost');
+// --- archive pages --------------------------------------------------------
+// Every category gets its own page listing all its stories, cross-deduped.
+{
+  const mk = (title, link, pub) => ({
+    title,
+    link,
+    guid: link,
+    pubDate: pub,
+    contentSnippet: '',
+  });
+  const results = [
+    { feed: { filename: 'rourkela', title: 'Rourkela News' }, items: [
+      mk('Same big story in Rourkela reported again', 'https://x/1', 'Mon, 20 Oct 2026 12:00:00 GMT'),
+      mk('Totally different Rourkela council meeting', 'https://x/2', 'Mon, 20 Oct 2026 11:00:00 GMT'),
+    ] },
+    { feed: { filename: 'rourkela-crime', title: 'Rourkela Crime' }, items: [
+      mk('Same big story in Rourkela reported again', 'https://x/1', 'Mon, 20 Oct 2026 12:00:00 GMT'),
+    ] },
+  ];
+  const pages = buildPages(results);
+  assert(pages.html.includes('PN Broadcast'), 'index page built');
+  const archives = pages.archives.map((a) => a.filename);
+  assert(archives.includes('category-rourkela.html'), 'rourkela archive page built');
+  assert(archives.length >= 1, 'at least one archive page built');
+  const rourkela = pages.archives.find((a) => a.filename === 'category-rourkela.html');
+  assert(rourkela.html.includes('All 2 stories'), 'archive counts cross-deduped items');
+  assert(rourkela.html.includes('<title>Rourkela - all stories'), 'archive has its own title');
+  assert(rourkela.html.includes('Back to PN Broadcast'), 'archive links back to the index');
+  assert(pages.html.includes('category-rourkela.html'), 'index links to the archive page');
+  assert(pages.html.includes('All 2 stories'), 'index shows the all-stories link');
 }
 
 // --- buildHero ------------------------------------------------------------

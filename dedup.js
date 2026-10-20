@@ -142,6 +142,73 @@ async function fetchWithRetry(parser, url) {
   throw lastErr;
 }
 
+// ---------------------------------------------------------------------------
+// freehire.me JSON source
+// ---------------------------------------------------------------------------
+
+/**
+ * Maps one freehire.me job to our item shape.
+ * The title carries the company so the headline reads on its own.
+ * Description carries location, skills and the source id, which keeps
+ * postings with identical titles apart during dedupe.
+ */
+function mapFreehireJob(job) {
+  const company = String(job.company || '').trim();
+  const title = String(job.title || '').trim();
+  const head = company ? `${title} at ${company}` : title;
+  const location = String(job.location || '').trim();
+  const skills = Array.isArray(job.skills) ? job.skills.slice(0, 8).join(', ') : '';
+  const id = String(job.external_id || job.public_slug || '').trim();
+  return {
+    title: head,
+    link: job.url || '',
+    guid: job.external_id || job.public_slug || job.url || '',
+    pubDate: job.posted_at || '',
+    contentSnippet: [location, skills, id].filter(Boolean).join(' | '),
+  };
+}
+
+/** Maps a freehire.me search response to our item list. */
+function mapFreehireItems(payload) {
+  const rows = Array.isArray(payload && payload.data) ? payload.data : [];
+  return rows.map(mapFreehireJob).filter((it) => it.title && it.link);
+}
+
+/** GET a JSON endpoint with the same timeout guard as the RSS fetcher. */
+async function fetchJsonWithTimeout(url) {
+  let timer = null;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`fetch timeout after ${FETCH_TIMEOUT_MS}ms`)), FETCH_TIMEOUT_MS);
+  });
+  const req = fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': 'PN Broadcast (feeds-dedup)' },
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .finally(() => {
+      if (timer) clearTimeout(timer);
+    });
+  return Promise.race([req, timeout]);
+}
+
+/** Fetches JSON with retry. Throws after all attempts, caller logs [fail]. */
+async function fetchJsonWithRetry(url) {
+  let lastErr = null;
+  for (let attempt = 0; attempt <= FETCH_RETRIES; attempt++) {
+    try {
+      return await fetchJsonWithTimeout(url);
+    } catch (err) {
+      lastErr = err;
+      if (attempt < FETCH_RETRIES) {
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 /**
  * Fails fast on config mistakes. Call once in main before fetching.
  * Checks duplicate filenames and unknown bundle sources.
@@ -354,11 +421,13 @@ function buildRssXml(feed, items) {
 
 // Category grouping for the index page. Order here = order on the page.
 // "full" categories span the full width (breaking bundles on top).
+// Each category also gets its own archive page with every story in it.
 const CATEGORIES = [
-  { label: 'Breaking', slug: 'breaking', accent: '#c62828', full: true, filenames: ['rourkela-breaking', 'odisha-breaking', 'ai-breaking', 'webdev-breaking'] },
+  { label: 'Breaking', slug: 'breaking', accent: '#c62828', full: true, filenames: ['rourkela-breaking', 'odisha-breaking', 'ai-breaking', 'webdev-breaking', 'jobs-breaking'] },
   { label: 'Rourkela', slug: 'rourkela', accent: '#e86a17', full: false, filenames: ['rourkela', 'rourkela-crime', 'rourkela-accident', 'rourkela-weather', 'rourkela-exams', 'rourkela-govt', 'rourkela-power', 'rourkela-health', 'satya-alert'] },
   { label: 'Odisha', slug: 'odisha', accent: '#2e7d32', full: false, filenames: ['odisha', 'bhubaneswar-crime', 'odisha-crime', 'odisha-accident', 'odisha-weather', 'odisha-exams', 'odisha-govt', 'odisha-power', 'odisha-health', 'oshb'] },
-  { label: 'Tech and Jobs', slug: 'tech-and-jobs', accent: '#1565c0', full: false, filenames: ['ai-models', 'ai-safety', 'ai-pricing', 'ai-industry', 'webdev-frontend', 'webdev-backend', 'webdev-devops', 'webdev-security', 'india-jobs', 'global-remote-jobs', 'wwr-programming', 'hn-hiring', 'hasjob'] },
+  { label: 'AI and WebDev', slug: 'ai-and-webdev', accent: '#1565c0', full: false, filenames: ['ai-models', 'ai-safety', 'ai-pricing', 'ai-industry', 'webdev-frontend', 'webdev-backend', 'webdev-devops', 'webdev-security'] },
+  { label: 'Jobs', slug: 'jobs', accent: '#00897b', full: false, filenames: ['india-tech-jobs', 'odisha-jobs'] },
   { label: 'India and World', slug: 'india-and-world', accent: '#6a1b9a', full: false, filenames: ['india-breaking', 'world-breaking', 'bengaluru-power'] },
 ];
 
@@ -392,13 +461,19 @@ function renderFeedCard(result, big) {
 }
 
 /** One category block: header plus a grid of feed cards. Empty feeds are hidden. */
-function renderCategory(cat, results) {
+function renderCategory(cat, results, totalItems) {
   const nonEmpty = results.filter((r) => r.items.length > 0);
   if (nonEmpty.length === 0) return '';
   const cards = nonEmpty.map((r) => renderFeedCard(r, cat.full)).join('\n');
+  const allLink = totalItems
+    ? `<a class="all-link" href="category-${cat.slug}.html">All ${totalItems} stories</a>`
+    : '';
   return `
       <section class="category" id="cat-${cat.slug}" data-cat="${cat.slug}" style="--cat:${cat.accent}">
-        <h2>${escapeText(cat.label)}</h2>
+        <div class="cat-head">
+          <h2>${escapeText(cat.label)}</h2>
+          ${allLink}
+        </div>
         <div class="grid${cat.full ? ' full' : ''}">${cards}
         </div>
       </section>`;
@@ -430,6 +505,7 @@ const HERO_AREA_OF = {
   'odisha-breaking': 'odisha',
   'ai-breaking': 'ai',
   'webdev-breaking': 'webdev',
+  'jobs-breaking': 'jobs',
   'oshb': 'odisha',
   'bhubaneswar-crime': 'odisha',
   'bengaluru-power': 'india-world',
@@ -446,7 +522,7 @@ function buildHero(results, byFilename) {
       if (!sourceOf.has(it)) sourceOf.set(it, title || '');
     }
   }
-  const bundleNames = ['rourkela-breaking', 'odisha-breaking', 'ai-breaking', 'webdev-breaking'];
+  const bundleNames = ['rourkela-breaking', 'odisha-breaking', 'ai-breaking', 'webdev-breaking', 'jobs-breaking'];
   const orphanNames = ['oshb', 'bengaluru-power', 'bhubaneswar-crime', 'india-breaking', 'world-breaking'];
   const perSource = [];
   for (const name of bundleNames) {
@@ -480,8 +556,87 @@ function buildHero(results, byFilename) {
   return hero;
 }
 
-/** Lead story strip under the masthead. Each row names its topic. */
-function renderHero(entries) {
+/**
+ * All stories of one category, newest first, cross-deduped across its feeds.
+ * Job postings are kept by id: two roles at one company are different items.
+ */
+function buildCategoryItems(cat, byFilename) {
+  const seen = [];
+  const seenIds = new Set();
+  const items = [];
+  for (const filename of cat.filenames || []) {
+    const result = byFilename[filename];
+    if (!result) continue;
+    for (const item of result.items) {
+      if (item._dedupeById) {
+        const id = item.guid || item.link;
+        if (seenIds.has(id)) continue;
+        seenIds.add(id);
+        items.push(item);
+        continue;
+      }
+      const strip = isGoogleNewsUrl(item.link);
+      const tokens = itemTokens(item, strip);
+      if (!isDuplicate(tokens, seen)) {
+        seen.push(tokens);
+        items.push(item);
+      }
+    }
+  }
+  items.sort((a, b) => dateValue(b) - dateValue(a));
+  return items;
+}
+
+/**
+ * One archive page per category: every story in that category, newest first.
+ * The front page stays a scannable summary; this is the full list.
+ */
+function buildArchiveHtml(cat, items) {
+  const rows = items
+    .map((item) => {
+      const pub = item.pubDate || item.isoDate || '';
+      const publisher = publisherOf(item);
+      const meta = [publisher, relativeTime(pub)].filter(Boolean).join(' | ');
+      return `
+          <li>
+            <a class="headline" href="${escapeText(item.link)}">${escapeText(displayTitle(item))}</a>
+            ${meta ? `<span class="meta">${escapeText(meta)}</span>` : ''}
+          </li>`;
+    })
+    .join('');
+
+  const updated = new Date().toUTCString();
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="All ${escapeText(String(items.length))} ${escapeText(cat.label)} stories, deduplicated. PN Broadcast.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23e86a17'/><circle cx='10' cy='22' r='3' fill='white'/><path d='M6 14a10 10 0 0 1 10 10' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/><path d='M6 7a17 17 0 0 1 17 17' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/></svg>">
+  <title>${escapeText(cat.label)} - all stories - PN Broadcast</title>
+  <style>${PAGE_CSS}</style>
+</head>
+<body>
+  <div class="wrap" id="top">
+    <header class="masthead">
+      <h1 class="brand">${escapeText(cat.label)}</h1>
+      <p class="tagline">All ${items.length} stories, deduplicated. Updated ${escapeText(updated)}.</p>
+      <div class="mast-row">
+        <a class="subscribe" href="./">Back to PN Broadcast</a>
+        <a class="all-link" href="feeds.opml">Subscribe to all feeds</a>
+      </div>
+    </header>
+    <section class="archive">
+      <ul>${rows}
+      </ul>
+    </section>
+    <footer>Generated by PN Broadcast. Personal project, view-only.</footer>
+  </div>
+</body>
+</html>`;
+}
+
+/** Lead story strip under the masthead. Each row names its topic. */function renderHero(entries) {
   if (entries.length === 0) return '';
   const rows = entries
     .map((w) => {
@@ -504,47 +659,8 @@ function renderHero(entries) {
       </section>`;
 }
 
-/** Builds the readable index page: masthead, grouped categories, feed cards. */
-function buildIndexHtml(results) {
-  const byFilename = {};
-  for (const result of results) byFilename[result.feed.filename] = result;
-
-  const sections = [];
-  const shownCats = [];
-  for (const cat of CATEGORIES) {
-    const catResults = cat.filenames.map((f) => byFilename[f]).filter(Boolean);
-    if (catResults.length > 0) {
-      const html = renderCategory(cat, catResults);
-      if (html) {
-        sections.push(html);
-        shownCats.push(cat);
-      }
-    }
-  }
-  // Safety net: any feed not listed above still appears.
-  const known = new Set(CATEGORIES.flatMap((c) => c.filenames));
-  const leftovers = results.filter((r) => !known.has(r.feed.filename));
-  if (leftovers.length > 0) {
-    const more = { label: 'More', slug: 'more', accent: '#607d8b', full: false };
-    const html = renderCategory(more, leftovers);
-    if (html) {
-      sections.push(html);
-      shownCats.push(more);
-    }
-  }
-
-  const updated = new Date().toUTCString();
-  const hero = renderHero(buildHero(results, byFilename));
-  const tabs = renderTabs(shownCats);
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="PN Broadcast - deduped RSS feeds for Rourkela, Odisha, AI and web dev. Same story, many publishers, one headline.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23e86a17'/><circle cx='10' cy='22' r='3' fill='white'/><path d='M6 14a10 10 0 0 1 10 10' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/><path d='M6 7a17 17 0 0 1 17 17' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/></svg>">
-  <title>PN Broadcast</title>
-  <style>
+// Shared styles for the index page and the category archive pages.
+const PAGE_CSS = `
     :root {
       --bg: #fafafa;
       --fg: #1a1a1a;
@@ -646,6 +762,10 @@ function buildIndexHtml(results) {
       margin: 0 0 0.75rem;
     }
     .category h2::before { content: ''; width: 5px; height: 1.05em; background: var(--cat); border-radius: 2px; }
+    .cat-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.75rem; }
+    .cat-head h2 { margin: 0 0 0.75rem; }
+    .all-link { color: var(--accent); font-size: 0.85rem; font-weight: 600; text-decoration: none; }
+    .all-link:hover { text-decoration: underline; }
     .grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
     @media (min-width: 900px) {
       .grid { grid-template-columns: 1fr 1fr; }
@@ -664,8 +784,70 @@ function buildIndexHtml(results) {
     .feed li a.headline:hover { text-decoration: underline; }
     .feed.big li a.headline { font-size: 1.12rem; }
     .feed .meta { display: block; color: var(--muted); font-size: 0.78rem; margin-top: 0.15rem; }
+    .archive { margin-top: 1.5rem; }
+    .archive ul { list-style: none; margin: 0; padding: 0; }
+    .archive li { padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+    .archive li a.headline { color: var(--fg); text-decoration: none; font-family: var(--font-head); font-size: 1rem; line-height: 1.35; }
+    .archive li a.headline:hover { text-decoration: underline; }
+    .archive .meta { display: block; color: var(--muted); font-size: 0.78rem; margin-top: 0.15rem; }
     footer { margin-top: 3rem; color: var(--muted); font-size: 0.85rem; text-align: center; }
-  </style>
+`;
+
+/** Builds the readable index page: masthead, grouped categories, feed cards. */
+function buildIndexHtml(results) {
+  return buildPages(results).html;
+}
+
+/**
+ * Builds the index page and one archive page per category.
+ * Returns { html, archives } where archives is a list of
+ * { filename, html } pairs to write to public/.
+ */
+function buildPages(results) {
+  const byFilename = {};
+  for (const result of results) byFilename[result.feed.filename] = result;
+
+  const sections = [];
+  const shownCats = [];
+  const archives = [];
+  for (const cat of CATEGORIES) {
+    const catResults = cat.filenames.map((f) => byFilename[f]).filter(Boolean);
+    if (catResults.length > 0) {
+      const items = buildCategoryItems(cat, byFilename);
+      archives.push({ filename: `category-${cat.slug}.html`, html: buildArchiveHtml(cat, items) });
+      const html = renderCategory(cat, catResults, items.length);
+      if (html) {
+        sections.push(html);
+        shownCats.push(cat);
+      }
+    }
+  }
+  // Safety net: any feed not listed above still appears.
+  const known = new Set(CATEGORIES.flatMap((c) => c.filenames));
+  const leftovers = results.filter((r) => !known.has(r.feed.filename));
+  if (leftovers.length > 0) {
+    const more = { label: 'More', slug: 'more', accent: '#607d8b', full: false, filenames: leftovers.map((r) => r.feed.filename) };
+    const items = buildCategoryItems(more, byFilename);
+    archives.push({ filename: `category-${more.slug}.html`, html: buildArchiveHtml(more, items) });
+    const html = renderCategory(more, leftovers, items.length);
+    if (html) {
+      sections.push(html);
+      shownCats.push(more);
+    }
+  }
+
+  const updated = new Date().toUTCString();
+  const hero = renderHero(buildHero(results, byFilename));
+  const tabs = renderTabs(shownCats);
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PN Broadcast - deduped RSS feeds for Rourkela, Odisha, AI and web dev. Same story, many publishers, one headline.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23e86a17'/><circle cx='10' cy='22' r='3' fill='white'/><path d='M6 14a10 10 0 0 1 10 10' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/><path d='M6 7a17 17 0 0 1 17 17' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/></svg>">
+  <title>PN Broadcast</title>
+  <style>${PAGE_CSS}</style>
 </head>
 <body>
   <div class="wrap" id="top">
@@ -715,6 +897,7 @@ function buildIndexHtml(results) {
 </script>
 </body>
 </html>`;
+  return { html, archives };
 }
 
 /**
@@ -752,24 +935,30 @@ ${outlines}
  * sorts newest-first, and caps the length.
  */
 /**
- * Tokens for dedupe. Feeds with "dedupeFullText" compare title plus body
- * text, for sources whose titles are near-identical (HN hiring comments).
- * The marker rides on the item so bundles and the hero dedupe the same way.
+ * Tokens for dedupe. Title only: one headline per story. Job postings use
+ * id-dedupe instead, since two roles at one company are different items.
  */
 function itemTokens(item, strip) {
-  if (item._dedupeFullText) {
-    return extractTokens(`${item.title || ''} ${item.contentSnippet || item.content || ''}`, false);
-  }
   return extractTokens(item.title || '', strip);
 }
 
 function buildBundleItems(bundle, resultsByFilename) {
   const seen = [];
+  const seenIds = new Set();
   const merged = [];
   for (const filename of bundle.sources || []) {
     const result = resultsByFilename[filename];
     if (!result) continue; // source failed this run - the bundle skips it
     for (const item of result.items) {
+      // Id-dedupe items (job postings) are kept as-is: same company, different
+      // role is a different item, not a repeat of one story.
+      if (item._dedupeById) {
+        const id = item.guid || item.link;
+        if (seenIds.has(id)) continue;
+        seenIds.add(id);
+        merged.push(item);
+        continue;
+      }
       // Per-item decision: only Google News links get publisher-strip.
       // Mixed bundles (Google + custom RSS) stay correct.
       const strip = isGoogleNewsUrl(item.link);
@@ -808,7 +997,10 @@ function loadConfig() {
 async function processFeed(feed, parser) {
   const url = buildFeedUrl(feed);
   const strip = isGoogleNewsUrl(url);
-  const parsed = await fetchWithRetry(parser, url);
+  // JSON sources (freehire.me) are fetched directly, RSS goes through the parser.
+  const parsed = feed.type === 'freehire'
+    ? { items: mapFreehireItems(await fetchJsonWithRetry(url)) }
+    : await fetchWithRetry(parser, url);
 
   const titleFiltered = filterByTitle(parsed.items, feed.filter);
   const titleDropped = parsed.items.length - titleFiltered.length;
@@ -823,15 +1015,23 @@ async function processFeed(feed, parser) {
   // output order stays stable across runs (less re-notify churn in readers).
   recentItems.sort((a, b) => dateValue(b) - dateValue(a));
 
-  // Full-text dedupe sources tag their items so bundles and the hero
-  // compare the same way (marker is display-invisible, XML untouched).
-  if (feed.dedupeFullText) {
-    for (const item of recentItems) item._dedupeFullText = true;
+  // Id-dedupe sources keep every posting: two roles at the same company are
+  // different jobs, not the same story, so title overlap must not merge them.
+  if (feed.dedupeById) {
+    for (const item of recentItems) item._dedupeById = true;
   }
 
   const acceptedSets = [];
+  const seenIds = new Set();
   const uniqueItems = [];
   for (const item of recentItems) {
+    if (item._dedupeById) {
+      const id = item.guid || item.link;
+      if (seenIds.has(id)) continue;
+      seenIds.add(id);
+      uniqueItems.push(item);
+      continue;
+    }
     const tokens = itemTokens(item, strip);
     if (!isDuplicate(tokens, acceptedSets)) {
       acceptedSets.push(tokens);
@@ -914,11 +1114,12 @@ async function main() {
   }
 
   if (results.length + bundleResults.length > 0) {
-    fs.writeFileSync(
-      path.join(OUTPUT_DIR, 'index.html'),
-      buildIndexHtml(results.concat(bundleResults)),
-      'utf8'
-    );
+    const pages = buildPages(results.concat(bundleResults));
+    fs.writeFileSync(path.join(OUTPUT_DIR, 'index.html'), pages.html, 'utf8');
+    for (const archive of pages.archives) {
+      fs.writeFileSync(path.join(OUTPUT_DIR, archive.filename), archive.html, 'utf8');
+    }
+    console.log(`Wrote index.html + ${pages.archives.length} category archive pages.`);
   }
 
   const totalIn = results.reduce((sum, r) => sum + r.total, 0);
@@ -955,6 +1156,9 @@ module.exports = {
   buildFeedUrl,
   buildBundleItems,
   buildHero,
+  mapFreehireJob,
+  mapFreehireItems,
+  buildPages,
   isGoogleNewsUrl,
   validateConfig,
 };
