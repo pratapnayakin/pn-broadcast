@@ -304,16 +304,42 @@ Add `"notify": true` to that feed's entry in `feeds.json`:
 
 ### How it behaves
 
-- The workflow runs `node notify.js` after every feed build (every 30
-  minutes).
+- The workflow runs `node notify.js` after every feed build.
 - The first run after enabling records the current items and sends nothing,
   so you do not get a flood of old headlines.
 - From the second run on, every new headline in an opted-in feed is pushed
-  to your phone within 30 minutes.
+  to your phone within one refresh slot (30 minutes by default).
 - Notification state is kept in the GitHub Actions cache
   (`.notify-state.json`), so the script remembers what it already sent.
 - If ntfy.sh is unreachable, the notification step is skipped and the feed
   site still deploys - a notification outage never breaks the site.
+
+---
+
+## Refresh timing (why there are two workflows)
+
+GitHub's own cron scheduler runs scheduled workflows late on public repos.
+Measured on this repo, a `*/30` cron actually fired every 2 to 6.5 hours,
+with a median gap of about 4 hours. The delay is not in the queue - every run
+started instantly once created - it is in GitHub's scheduler backlog, and
+no cron setting can fix it.
+
+So the clock lives in the repository instead:
+
+| Workflow | Job | What it does |
+|---|---|---|
+| `tick.yml` | `chain` | Waits on a fixed grid, then dispatches a site build and the next tick. This is the metronome. |
+| `tick.yml` | `backstop` | Runs on the hourly cron. If no tick is alive, it revives the chain. It never touches a live chain. |
+| `update.yml` | `build-and-deploy` | Fetches feeds, writes the XML and HTML, sends notifications, deploys to Pages. |
+
+- `workflow_dispatch` always creates a run immediately, so the tick does not
+  inherit the cron delay.
+- To change the refresh rate, edit `INTERVAL_MINUTES` in `tick.yml`. Slots
+  align to UTC, so 30 means :00 and :30 every hour.
+- To stop everything, disable **both** workflows in the Actions tab. To
+  resume, re-enable and run "Feed Tick" manually once.
+- If the chain ever dies, the backstop revives it on the next hourly
+  schedule fire.
 
 ---
 
@@ -390,7 +416,8 @@ the stock react" headlines share 44% of their words).
 Triggers:
 
 - **Every push to `main`** - instant feedback that the pipeline works
-- **Every 30 minutes** (`cron: */30 * * * *`) - the regular refresh
+- **From the tick workflow** - the regular refresh, on a fixed grid
+  (see "Refresh timing" above)
 - **Manual** (`workflow_dispatch`) - "Run workflow" button on the Actions page
 
 Steps on each run: checkout -> setup Node 22 -> `npm ci` -> `node dedup.js`
@@ -462,8 +489,10 @@ Read this section honestly - these are the edges of the system.
 
 ### GitHub Actions quirks
 
-- **Scheduled runs are not exact.** GitHub delays cron runs by minutes during
-  peak load. "Every 30 minutes" means "roughly every 30 minutes".
+- **Scheduled runs are badly delayed.** On this repo a `*/30` cron actually
+  fired every 2 to 6.5 hours, median about 4. The delay is in GitHub's
+  scheduler, not the queue, and no cron setting fixes it. That is why the
+  refresh clock lives in `tick.yml` instead.
 - **Scheduled workflows get disabled after 60 days** of no activity in a
   public repo. Normal commits keep it alive; if it is disabled, re-enable it
   from the Actions tab.
@@ -529,5 +558,5 @@ Read this section honestly - these are the edges of the system.
 - Engine: `dedup.js` (Node, single dependency: `rss-parser`)
 - Config: `feeds.json` (keywords for simple feeds, `url` for complex ones)
 - Subscribe once: import `feeds.opml` into any RSS reader
-- Refresh: every 30 minutes + on every push to `main`
+- Refresh: on a fixed grid via `tick.yml` (30 min by default) + on every push to `main`
 - Cost: zero

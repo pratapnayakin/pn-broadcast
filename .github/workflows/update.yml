@@ -1,11 +1,24 @@
 name: Update News Feed
 
+# The site builder. It is normally triggered by the Feed Tick workflow on a
+# fixed grid, because GitHub's own cron scheduler backs up by hours on public
+# repos. The schedule trigger below is only a rare backstop; the cron here
+# is hourly at an off-minute so it never collides with the grid.
+#
+# To change the refresh rate, edit INTERVAL_MINUTES in tick.yml.
+
 on:
   push:
     branches: [main]
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '23 */6 * * *'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Internal. work builds the site, tick advances the grid.'
+        required: false
+        default: 'work'
+        type: string
 
 permissions:
   contents: read

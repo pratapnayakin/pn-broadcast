@@ -1,0 +1,132 @@
+name: Feed Tick
+
+# The metronome. GitHub's own cron scheduler backs up by hours on public
+# repos, so this workflow is NOT driven by cron for pacing. A tick run waits
+# on a fixed grid, then dispatches:
+#   1. update.yml (mode=work) - builds and deploys the site
+#   2. tick.yml  (mode=tick)  - keeps the next slot alive
+#
+# The schedule trigger is a dead-man's switch only. If the tick chain ever
+# dies, the next schedule fire checks whether a tick is still alive and
+# revives it. It is set off the top of the hour to avoid the busiest
+# minute, and it never touches a live chain.
+#
+# To stop everything, disable BOTH this workflow and Update News Feed in
+# the Actions tab. To change the refresh rate, edit INTERVAL_MINUTES below.
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Internal. tick keeps the grid alive, work builds the site.'
+        required: false
+        default: 'tick'
+        type: string
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  chain:
+    name: Wait for the next slot, then trigger the next run
+    # Only the chain job advances the grid.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # One tick at a time. The next tick cancels this one, which is safe
+    # because the work dispatch is sent before the next-tick dispatch.
+    concurrency:
+      group: 'feed-tick'
+      cancel-in-progress: true
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      # Refresh cadence in minutes. Grid slots align to UTC, so 30 means
+      # :00 and :30 every hour.
+      INTERVAL_MINUTES: '30'
+    steps:
+      - name: Wait for the next slot
+        run: |
+          set -euo pipefail
+          interval=$(( INTERVAL_MINUTES * 60 ))
+          now=$(date -u +%s)
+          target=$(( (now / interval + 1) * interval ))
+          wait=$(( target - now ))
+          echo "Interval ${INTERVAL_MINUTES}m. Waiting ${wait}s for slot $(date -u -d "@${target}" +%H:%M:%S UTC)"
+          sleep "${wait}"
+
+      - name: Trigger the site build and the next slot
+        run: |
+          set -euo pipefail
+
+          # 1. Work first, so a cancellation cannot cost us a build.
+          echo "Dispatching site build..."
+          gh api --method POST \
+            "repos/${GH_REPO}/actions/workflows/update.yml/dispatches" \
+            --input - <<'JSON'
+          {"ref":"main","inputs":{"mode":"work"}}
+          JSON
+
+          # 2. Then the next tick, which keeps the grid alive.
+          echo "Dispatching next tick..."
+          gh api --method POST \
+            "repos/${GH_REPO}/actions/workflows/tick.yml/dispatches" \
+            --input - <<'JSON'
+          {"ref":"main","inputs":{"mode":"tick"}}
+          JSON
+
+          echo "Done."
+
+  backstop:
+    name: Revive the chain if it died
+    # Only the schedule event runs this job. It never cancels a live chain.
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: 'feed-tick-backstop'
+      cancel-in-progress: true
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      # A tick older than this many minutes is considered dead.
+      STALE_MINUTES: '45'
+    steps:
+      - name: Check whether a tick is still alive
+        id: check
+        run: |
+          set -euo pipefail
+          cutoff=$(date -u -d "-${STALE_MINUTES} minutes" +%Y-%m-%dT%H:%M:%SZ)
+          echo "Cutoff: ${cutoff}"
+          alive=$(gh api \
+            "repos/${GH_REPO}/actions/workflows/tick.yml/runs?per_page=20" \
+            --jq "[.workflow_runs[] | select(.id != ${GITHUB_RUN_ID} and .created_at > \"${cutoff}\" and (.status == \"queued\" or .status == \"in_progress\"))] | length")
+          echo "Live tick runs: ${alive}"
+          if [ "${alive}" -gt 0 ]; then
+            echo "Chain is alive, nothing to do."
+            echo "alive=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Chain looks dead, reviving it."
+            echo "alive=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Revive the chain
+        if: steps.check.outputs.alive == 'false'
+        run: |
+          set -euo pipefail
+          echo "Dispatching a fresh tick..."
+          gh api --method POST \
+            "repos/${GH_REPO}/actions/workflows/tick.yml/dispatches" \
+            --input - <<'JSON'
+          {"ref":"main","inputs":{"mode":"tick"}}
+          JSON
+          echo "Dispatching a site build..."
+          gh api --method POST \
+            "repos/${GH_REPO}/actions/workflows/update.yml/dispatches" \
+            --input - <<'JSON'
+          {"ref":"main","inputs":{"mode":"work"}}
+          JSON
+          echo "Revived."
