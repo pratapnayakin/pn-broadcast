@@ -49,7 +49,19 @@ Why these building blocks:
 | Odisha Breaking (merged bundle - one link for all Odisha alerts) | https://pratapnayakin.github.io/pn-broadcast/odisha-breaking.xml |
 | Rourkela Breaking (merged bundle - one link for all Rourkela alerts) | https://pratapnayakin.github.io/pn-broadcast/rourkela-breaking.xml |
 | AI Breaking (merged bundle - one link for all AI alerts) | https://pratapnayakin.github.io/pn-broadcast/ai-breaking.xml |
-| WebDev Breaking (merged bundle - one link for all web dev and jobs alerts) | https://pratapnayakin.github.io/pn-broadcast/webdev-breaking.xml |
+| WebDev Breaking (merged bundle - one link for all web dev alerts) | https://pratapnayakin.github.io/pn-broadcast/webdev-breaking.xml |
+| Jobs Breaking (merged bundle - one link for all job postings) | https://pratapnayakin.github.io/pn-broadcast/jobs-breaking.xml |
+
+Archive pages, one per category, every story in it:
+
+| Category | URL |
+|---|---|
+| Rourkela | https://pratapnayakin.github.io/pn-broadcast/category-rourkela.html |
+| Odisha | https://pratapnayakin.github.io/pn-broadcast/category-odisha.html |
+| AI and WebDev | https://pratapnayakin.github.io/pn-broadcast/category-ai-and-webdev.html |
+| Jobs | https://pratapnayakin.github.io/pn-broadcast/category-jobs.html |
+| India and World | https://pratapnayakin.github.io/pn-broadcast/category-india-and-world.html |
+| Breaking (all bundles) | https://pratapnayakin.github.io/pn-broadcast/category-breaking.html |
 
 Paste any `.xml` URL into an RSS reader (Feedly, Inoreader, NetNewsWire, ...).
 The reader polls it on its normal refresh cycle; the content behind it is
@@ -71,7 +83,8 @@ GitHub Actions (30-minute cron, or on every push, or manual)
         |-- 4. writes public/<filename>.xml  (clean RSS 2.0)
         |-- 5. writes public/<bundle>.xml    (merged feeds, cross-deduped)
         |-- 6. writes public/index.html      (readable index - top 10 per feed, relative time, fresh-only top stories, tab bar)
-        |-- 7. writes public/feeds.opml      (one-click subscribe list)
+        |-- 7. writes public/category-*.html (one archive page per category, every story)
+        |-- 8. writes public/feeds.opml      (one-click subscribe list)
         |
         v
 upload-pages-artifact --> deploy-pages
@@ -90,8 +103,9 @@ This pipeline collapses those duplicates so you read each story once.
 | File | Purpose |
 |---|---|
 | `feeds.json` | **The only file you edit day-to-day.** List of feeds (keywords or full URLs) plus optional bundles. |
-| `dedup.js` | The whole engine: fetch, dedupe, write XML + HTML. ~580 lines, commented. |
+| `dedup.js` | The whole engine: fetch, dedupe, write XML + HTML. ~1000 lines, commented. |
 | `.github/workflows/update.yml` | The automation: runs the script and deploys to Pages. |
+| `notify.js` | Push notifications: finds new items since the last run and posts them to ntfy.sh. |
 | `package.json` | Declares the single dependency (`rss-parser`) and the `npm start` / `npm test` scripts. |
 | `package-lock.json` | Pins exact dependency versions. Required by `npm ci` in the workflow. **Must be committed.** |
 | `.gitignore` | Keeps `node_modules/` and `public/` out of git (both are generated/restored). |
@@ -182,9 +196,11 @@ An explicit `url` always wins over `keywords`.
 - Optional: `"maxAgeDays": 30` drops items older than that many days
   (default 365; change `MAX_AGE_DAYS` in `dedup.js` for a global default).
   Items with a missing date are kept.
-- Optional: `"dedupeFullText": true` compares title plus body text instead of
-  title alone. For sources whose titles are near-identical (HN hiring
-  comments); off by default.
+- Optional: `"dedupeById": true` dedupes on the source id instead of the
+  headline. For job postings, where two roles at one company are different
+  items, not one repeated story. Off by default.
+- Optional: `"type": "freehire"` reads a freehire.me JSON search endpoint
+  instead of RSS. See the job feeds section below.
 
 ### Bundles - several feeds merged into one link
 
@@ -213,6 +229,42 @@ so you can subscribe to many topics through a single URL:
 To add a feed: edit `feeds.json`, commit, push. The workflow deploys it
 automatically. To remove one: delete the entry. The full every-time checklist
 (including the RSS reader side) is below.
+
+---
+
+## Job feeds (freehire.me)
+
+Two feeds pull real software job postings from company career pages, via the
+freehire.me public API. No key, no signup, no scraping on our side.
+
+```json
+{
+  "filename": "india-tech-jobs",
+  "title": "India Tech Jobs",
+  "description": "Software job openings in India, straight from company career pages",
+  "type": "freehire",
+  "dedupeById": true,
+  "maxAgeDays": 7,
+  "url": "https://freehire.me/api/v1/jobs/search?limit=50&countries=IN&is_tech=tech&posted_within_days=7&sort=posted_at&order=desc"
+}
+```
+
+- `"type": "freehire"` tells the engine to read JSON instead of RSS. The
+  endpoint returns `{ "data": [...] }`; each job becomes an item with the
+  company in the headline, the apply URL as the link, `posted_at` as the date,
+  and location, skills and the source id in the description.
+- `"dedupeById": true` dedupes on the source id instead of the headline, so
+  two roles at the same company stay two separate postings. Headline dedupe
+  would merge "Software Engineer, Backend" and "Software Engineer, Machine
+  Learning" at one company, which are different jobs.
+- The URL is a normal freehire search. Useful filters: `countries` (IN),
+  `regions`, `cities`, `is_tech` (tech / non_tech), `work_mode`, `seniority`,
+  `skills`, `posted_within_days`, `sort=posted_at&order=desc`, `limit` (max 100).
+- `q` does full-text search and supports `OR`. The Odisha feed uses
+  `q=Rourkela%20OR%20Odisha`.
+- The API allows 600 requests per minute, keyless. A run uses two calls.
+- If the API is down or changes shape, that feed logs `[fail]` and is skipped
+  for the run. Every other feed still deploys.
 
 ---
 
@@ -366,10 +418,18 @@ Read this section honestly - these are the edges of the system.
   of the same big story can still slip through - word overlap between
   same-story headlines ranges from near-zero to high, so no threshold
   separates them perfectly.
-- **Base feeds dedupe independently; bundles cross-dedupe.** The same story can appear in both
-  the Rourkela feed and the OSHB feed. Each base feed is deduped on its own; bundles collapse repeats across their sources.
 - **First-seen wins.** Items are processed in the order Google returns them;
   which publisher's headline survives is arbitrary.
+- **The threshold was measured, not guessed.** A sample of 30 near-duplicate
+  pairs was hand-labelled and four candidate signals were tested against it:
+  plain word overlap, IDF-weighted overlap, rare-bigram overlap, and
+  rare-token overlap. None separated true duplicates from false ones
+  cleanly, and lowering the threshold merged unrelated stories such as
+  "Meta launches Muse Wonder" with "Anthropic launches Claude Opus 5.5".
+  So 0.45 stays. What changed instead: archive pages cross-dedupe across
+  every feed in a category, which catches repeats the per-feed pass misses,
+  and job postings dedupe on source id so two roles at one company stay
+  two postings.
 - **Empty-token headlines are never duplicates.** A title with no meaningful
   words left after tokenizing is always kept.
 
