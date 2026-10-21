@@ -87,6 +87,8 @@ GitHub Actions (30-minute tick, or on every push, or manual)
         |-- 7. writes public/category-*.html (one archive page per category, every story)
         |-- 8. writes public/feeds.opml      (one-click subscribe list)
         |-- 9. copies public/manage.html     (the add/remove feed form)
+        |-- 10. copies public/manage.js      (the manage page script)
+        |-- 11. copies public/manage-core.js (the manage page logic, unit tested)
         |
         v
 upload-pages-artifact --> deploy-pages
@@ -712,6 +714,12 @@ Read this section honestly - these are the edges of the system.
   appears and diffs stay clean across machines.
 - Node 20 reached end-of-life in April 2026; the workflow pins Node 22 on
   purpose.
+- **The "Updated" stamp is shown in the reader's timezone.** The build runs
+  on a UTC runner, so the timestamp is written into the page as UTC in a
+  `<time datetime="...">` element, and a small script in the page converts
+  it to whatever timezone the reader's browser is in. Hovering it shows the
+  exact UTC build time. Without JavaScript the UTC time is shown instead,
+  which is still truthful rather than a wrong local time.
 
 ### The manage page's security model
 

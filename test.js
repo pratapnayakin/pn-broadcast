@@ -750,4 +750,49 @@ const {
   );
 }
 
+// --- build time in the reader's timezone -----------------------------------
+// The build runs on a UTC runner, so the timestamp is baked in as UTC and
+// converted to local time by a script in the page. Both the machine-readable
+// value and a truthful UTC fallback must be present.
+{
+  const pages = buildPages([{ feed: { filename: 'rourkela', title: 'Rourkela News' }, items: [] }], [
+    { label: 'Rourkela', slug: 'rourkela', accent: '#e86a17', full: false, filenames: ['rourkela'] },
+  ]);
+  const m = pages.html.match(/<time class="updated-time" datetime="([^"]+)">([^<]*)<\/time>/);
+  assert(m, 'index page has a <time> element for the build time');
+
+  const iso = m[1];
+  const fallback = m[2];
+  assert(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(iso), 'datetime is ISO 8601 in UTC');
+  assert(!Number.isNaN(new Date(iso).getTime()), 'datetime parses as a date');
+  assert(fallback.endsWith('GMT'), 'the no-JavaScript fallback still shows UTC');
+  assert.strictEqual(fallback, new Date(iso).toUTCString(), 'fallback matches the build time');
+
+  // The page must ship the script that converts it to local time.
+  assert(pages.html.includes('time.updated-time'), 'page includes the local-time script');
+  assert(pages.html.includes('Intl.DateTimeFormat'), 'local time is formatted with Intl');
+  // The formatter must follow the reader's locale and zone, not a fixed one.
+  assert(
+    /new Intl\.DateTimeFormat\(undefined,/.test(pages.html),
+    'local time uses the reader default locale and timezone'
+  );
+  assert(
+    !/new Intl\.DateTimeFormat\('en-US'/.test(pages.html),
+    'local time is not pinned to a single locale'
+  );
+
+  // The archive pages get the same treatment.
+  const archive = pages.archives.find((a) => a.filename === 'category-rourkela.html');
+  assert(archive, 'archive page built');
+  assert(
+    archive.html.includes('<time class="updated-time" datetime="'),
+    'archive page has the same <time> element'
+  );
+  assert(archive.html.includes('Intl.DateTimeFormat'), 'archive page includes the local-time script');
+  assert(
+    /new Intl\.DateTimeFormat\(undefined,/.test(archive.html),
+    'archive page local time uses the reader default locale and timezone'
+  );
+}
+
 console.log('All tests passed.');
