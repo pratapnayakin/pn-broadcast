@@ -110,7 +110,9 @@ how feeds are added without editing JSON.
 |---|---|
 | `feeds.json` | **The config.** Feeds (keywords or full URLs), optional bundles, and the category list. Edited by hand or through the manage page. |
 | `assets/manage.html` | The manage page markup and styles. Copied to `public/manage.html` on every build. |
-| `assets/manage.js` | The manage page logic: an ES module loaded by the page. Copied to `public/manage.js`. |
+| `assets/manage.js` | The manage page browser code: DOM wiring and the GitHub API calls. Copied to `public/manage.js`. |
+| `assets/manage-core.js` | The manage page's pure logic (build a feed entry, apply it to a config, write it back). Unit tested by `test.js`. |
+| `assets/package.json` | Marks `assets/` as ES modules for Node, so `test.js` can `require()` the core module. Not published. |
 | `dedup.js` | The whole engine: fetch, dedupe, write XML + HTML. ~1000 lines, commented. |
 | `.github/workflows/update.yml` | The automation: runs the script and deploys to Pages. |
 | `.github/workflows/tick.yml` | The metronome: keeps the 30-minute refresh on a fixed grid. |
@@ -499,11 +501,33 @@ so a style error is visible but can never stop the feeds from publishing.
 The deploy job installs production dependencies only (`npm ci --omit=dev`),
 so the linter is not even present on that path.
 
-The manage page (`assets/manage.html` + `assets/manage.js`) is linted by the
-same config. Its script lives in its own file rather than inline in the HTML
-precisely so a linter can read it.
+The manage page (`assets/manage.html` + `assets/manage.js` +
+`assets/manage-core.js`) is linted by the same config. Its logic lives in
+separate files rather than inline in the HTML precisely so a linter - and
+the test suite - can read it.
 
 Requires Node `^20.19.0 || ^22.13.0 || >=24` (ESLint 10's own requirement).
+
+### Tests
+
+`npm test` runs the suite. It covers the engine (dedupe, age filter, hero,
+bundles, config validation) **and** the manage page's core logic, which is
+the code that writes to your repo:
+
+- `buildEntry` - every source type, the filter and exclude lists, the age
+  limit, push notifications, and each error a user can act on
+- `applyEntry` - the feed always lands in a real named section; duplicate
+  filenames and duplicate titles are refused; a new section is created
+  correctly and other sections are left alone; the original config is never
+  mutated
+- `removeFeed` - the feed leaves the feed list, every section, and every
+  bundle, and the result still passes the engine's own validation
+- `serialize` - the config is written back **byte for byte** in the repo's
+  format, so a pull request shows only the lines that changed
+- base64 round trips, including the Odia-script characters in `feeds.json`
+
+The tests run in CI in the same parallel job as the lint, so neither can
+stop the feeds from deploying.
 
 ---
 

@@ -30,9 +30,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Lint runs as its own job, in parallel with the build. A style error
-  # shows up as a red job but must never stop the feeds from deploying.
-  lint:
+  # Lint and tests run as their own job, in parallel with the build. An
+  # error here shows up as a red job but must never stop the feeds from
+  # deploying.
+  checks:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -50,6 +51,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Run tests
+        run: npm test
 
   build-and-deploy:
     environment:

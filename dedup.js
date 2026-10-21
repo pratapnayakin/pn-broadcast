@@ -1125,8 +1125,9 @@ async function main() {
   // The manage UI is a static page kept in assets/ and copied here, since
   // public/ is gitignored and rebuilt from scratch on every run. It is
   // copied even if every feed failed, so the page stays reachable.
-  // The page loads manage.js as a module, so both files must be copied.
-  for (const name of ['manage.html', 'manage.js']) {
+  // manage.js imports manage-core.js, so both must be copied next to
+  // each other for the relative import to resolve.
+  for (const name of ['manage.html', 'manage.js', 'manage-core.js']) {
     const src = path.join(__dirname, 'assets', name);
     if (fs.existsSync(src)) {
       fs.copyFileSync(src, path.join(OUTPUT_DIR, name));

@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 /**
- * Tests for dedup.js - run with: npm test
+ * Tests for dedup.js and the manage page's core logic - run with: npm test
  * Uses only node:assert - no test framework, no dependencies.
  * Requiring dedup.js does NOT trigger a fetch run (guarded by
  * require.main === module inside dedup.js).
+ *
+ * assets/manage-core.js is an ES module; Node can require() it (supported
+ * from Node 20.19 / 22.12, which is what the engines field requires).
  */
 
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 const {
   extractTokens,
   similarityScore,
@@ -28,6 +33,18 @@ const {
   validateConfig,
 } = require('./dedup.js');
 const { freshItems } = require('./notify.js');
+const {
+  NEW_SECTION,
+  slugify,
+  splitList,
+  buildEntry,
+  applyEntry,
+  removeFeed,
+  formatJson,
+  serialize,
+  encodeBase64,
+  decodeBase64,
+} = require('./assets/manage-core.js');
 
 // --- extractTokens -------------------------------------------------------
 // Strips the " - Publisher" tag Google News appends, lowercases, drops
@@ -500,6 +517,237 @@ const { freshItems } = require('./notify.js');
   ];
   const hero2 = buildHero(dupResults, dupBy);
   assert.strictEqual(hero2.length, 1, 'same story across bundles appears once');
+}
+
+// --- manage-core: slugify + splitList --------------------------------------
+// These turn form input into the values that end up in feeds.json.
+{
+  assert.strictEqual(slugify('Rourkela Power Cuts'), 'rourkela-power-cuts', 'slugifies a title');
+  assert.strictEqual(slugify('  Cricket!  '), 'cricket', 'trims and strips punctuation');
+  assert.strictEqual(slugify('Odisha & Rourkela'), 'odisha-rourkela', 'collapses separators');
+  assert.strictEqual(slugify('!!!'), '', 'a name with no usable letters slugifies to empty');
+  assert(slugify('a'.repeat(80)).length <= 40, 'slug is capped at 40 characters');
+
+  assert.deepStrictEqual(splitList('a, b ,c'), ['a', 'b', 'c'], 'splits and trims a comma list');
+  assert.deepStrictEqual(splitList(''), [], 'an empty list stays empty');
+  assert.deepStrictEqual(splitList(' , '), [], 'a list of only separators is empty');
+  assert.deepStrictEqual(splitList(null), [], 'a missing list is empty');
+}
+
+// --- manage-core: buildEntry -----------------------------------------------
+// Turns the form fields into a feeds.json entry.
+{
+  const base = {
+    title: 'Rourkela Power Tariffs',
+    kind: 'keywords',
+    keywords: 'Rourkela power tariff\nRourkela electricity rate',
+    url: '',
+    maxAge: '30',
+    exclude: 'gold rate, on road price',
+    filter: '',
+    notify: 'no',
+    topic: '',
+  };
+
+  const kw = buildEntry(base);
+  assert.strictEqual(kw.filename, 'rourkela-power-tariffs', 'filename comes from the title');
+  assert.strictEqual(kw.title, 'Rourkela Power Tariffs', 'title is kept');
+  assert.deepStrictEqual(kw.keywords, ['Rourkela power tariff', 'Rourkela electricity rate'], 'keywords split by line');
+  assert.strictEqual(kw.maxAgeDays, 30, 'max age is read');
+  assert.deepStrictEqual(kw.exclude, ['gold rate', 'on road price'], 'exclude list is parsed');
+  assert.strictEqual(kw.filter, undefined, 'no filter field means no filter');
+  assert.strictEqual(kw.notify, undefined, 'notifications are off by default');
+  assert.strictEqual(kw.url, undefined, 'a keyword feed has no url');
+
+  const withFilter = buildEntry({ ...base, filter: 'cricket, T20' });
+  assert.deepStrictEqual(withFilter.filter, ['cricket', 'T20'], 'filter list is parsed');
+
+  const direct = buildEntry({ ...base, kind: 'url', url: 'https://example.com/feed' });
+  assert.strictEqual(direct.url, 'https://example.com/feed', 'a url feed keeps its url');
+  assert.strictEqual(direct.keywords, undefined, 'a url feed has no keywords');
+  assert.strictEqual(direct.type, undefined, 'a plain url feed is not freehire');
+
+  const jobs = buildEntry({ ...base, kind: 'freehire', url: 'https://freehire.me/api/v1/jobs/search' });
+  assert.strictEqual(jobs.type, 'freehire', 'a freehire feed is marked as such');
+  assert.strictEqual(jobs.dedupeById, true, 'a freehire feed dedupes on id');
+
+  const pushed = buildEntry({ ...base, notify: 'yes', topic: 'pn-broadcast-rourkela-power' });
+  assert.strictEqual(pushed.notify, true, 'notifications can be turned on');
+  assert.strictEqual(pushed.topic, 'pn-broadcast-rourkela-power', 'a custom topic is kept');
+  const pushedNoTopic = buildEntry({ ...base, notify: 'yes', topic: '  ' });
+  assert.strictEqual(pushedNoTopic.topic, undefined, 'a blank topic is dropped, not written');
+
+  // Errors a user can act on.
+  assert.throws(() => buildEntry({ ...base, title: '   ' }), /title is required/, 'a blank title is rejected');
+  assert.throws(() => buildEntry({ ...base, keywords: '  \n ' }), /at least one search term/, 'a keyword feed needs a term');
+  assert.throws(() => buildEntry({ ...base, kind: 'url', url: '' }), /URL is required/, 'a url feed needs a url');
+}
+
+// --- manage-core: applyEntry -----------------------------------------------
+// Applies a new feed to a copy of the config. The feed must always land in
+// a real, named category - never the "More" fallback.
+{
+  const config = {
+    feeds: [
+      { filename: 'rourkela', title: 'Rourkela News' },
+      { filename: 'rourkela-crime', title: 'Rourkela Crime' },
+    ],
+    categories: [
+      { label: 'Rourkela', slug: 'rourkela', accent: '#e86a17', full: false, filenames: ['rourkela', 'rourkela-crime'] },
+    ],
+    bundles: [
+      { filename: 'rourkela-breaking', title: 'Rourkela Breaking', sources: ['rourkela'] },
+    ],
+  };
+
+  const entry = buildEntry({ title: 'Rourkela Power', kind: 'keywords', keywords: 'x', maxAge: '30', notify: 'no', exclude: '', filter: '' });
+
+  const added = applyEntry(config, entry, 'rourkela', 'rourkela-breaking');
+  assert.strictEqual(added.feeds.length, 3, 'the feed is added to the feed list');
+  assert(added.categories[0].filenames.includes('rourkela-power'), 'the feed joins the chosen section');
+  assert(added.bundles[0].sources.includes('rourkela-power'), 'the feed joins the chosen bundle');
+  assert.strictEqual(config.feeds.length, 2, 'the original config is not mutated');
+
+  // Duplicate guards.
+  const sameName = buildEntry({ title: 'Rourkela', kind: 'keywords', keywords: 'x', maxAge: '30', notify: 'no', exclude: '', filter: '' });
+  assert.throws(
+    () => applyEntry(config, sameName, 'rourkela', ''),
+    /already exists/,
+    'a feed with an existing filename is rejected'
+  );
+  const sameTitle = buildEntry({ title: 'rourkela news', kind: 'keywords', keywords: 'x', maxAge: '30', notify: 'no', exclude: '', filter: '' });
+  assert.throws(
+    () => applyEntry(config, sameTitle, 'rourkela', ''),
+    /already exists/,
+    'a feed with an existing title is rejected even under a different filename'
+  );
+
+  // A section must always be chosen.
+  assert.throws(
+    () => applyEntry(config, entry, '', ''),
+    /Choose a section/,
+    'a feed cannot be added without a section'
+  );
+  assert.throws(
+    () => applyEntry(config, entry, 'no-such-section', ''),
+    /no longer exists/,
+    'a section that is gone is reported clearly'
+  );
+
+  // Creating a new section.
+  const withNew = applyEntry(config, entry, NEW_SECTION, '', {
+    newSectionLabel: 'Cricket',
+    newSectionAccent: '#c2185b',
+  });
+  assert.strictEqual(withNew.categories.length, 2, 'a new section is created');
+  const cricket = withNew.categories.find((c) => c.slug === 'cricket');
+  assert.strictEqual(cricket.label, 'Cricket', 'the new section keeps its label');
+  assert.strictEqual(cricket.accent, '#c2185b', 'the new section keeps its colour');
+  assert.deepStrictEqual(cricket.filenames, ['rourkela-power'], 'the feed goes in the new section');
+  assert.strictEqual(withNew.categories[0].filenames.length, 2, 'other sections are untouched');
+
+  assert.throws(
+    () => applyEntry(config, entry, NEW_SECTION, '', { newSectionLabel: '' }),
+    /Give the new section a name/,
+    'a new section needs a name'
+  );
+  assert.throws(
+    () => applyEntry(config, entry, NEW_SECTION, '', { newSectionLabel: '!!!' }),
+    /no usable letters/,
+    'a new section name must have usable letters'
+  );
+  assert.throws(
+    () => applyEntry(config, entry, NEW_SECTION, '', { newSectionLabel: 'Rourkela' }),
+    /already exists/,
+    'a new section cannot reuse an existing name'
+  );
+}
+
+// --- manage-core: removeFeed -----------------------------------------------
+// Removing a feed must clear it from the feed list, every section, and
+// every bundle - otherwise a stale filename would fail validateConfig.
+{
+  const config = {
+    feeds: [
+      { filename: 'rourkela', title: 'Rourkela News', keywords: ['Rourkela'] },
+      { filename: 'rourkela-crime', title: 'Rourkela Crime', keywords: ['Rourkela crime'] },
+    ],
+    categories: [
+      { label: 'Rourkela', slug: 'rourkela', accent: '#e86a17', full: false, filenames: ['rourkela', 'rourkela-crime'] },
+    ],
+    bundles: [
+      { filename: 'rourkela-breaking', title: 'Rourkela Breaking', sources: ['rourkela', 'rourkela-crime'] },
+    ],
+  };
+
+  const removed = removeFeed(config, 'rourkela');
+  assert.strictEqual(removed.feeds.length, 1, 'the feed leaves the feed list');
+  assert(!removed.categories[0].filenames.includes('rourkela'), 'the feed leaves the section');
+  assert(!removed.bundles[0].sources.includes('rourkela'), 'the feed leaves the bundle');
+  assert(removed.categories[0].filenames.includes('rourkela-crime'), 'other feeds stay in the section');
+  assert.strictEqual(config.feeds.length, 2, 'the original config is not mutated');
+
+  // The result must still pass the engine's own validation.
+  assert.doesNotThrow(
+    () => validateConfig(removed.feeds, removed.bundles, removed.categories),
+    'a config after removal still validates'
+  );
+}
+
+// --- manage-core: serialize -----------------------------------------------
+// The config must be written back in the repo's exact format, so the pull
+// request diff shows only the lines that changed.
+{
+  const original = fs.readFileSync(path.join(__dirname, 'feeds.json'), 'utf8');
+  const parsed = JSON.parse(original);
+  const out = serialize(parsed);
+  assert.strictEqual(out, original, 'serialize reproduces feeds.json byte for byte');
+  assert(out.endsWith('\n'), 'the file ends with a newline');
+
+  // A one-feed change must not reformat the rest of the file.
+  const edited = JSON.parse(original);
+  edited.feeds.push({
+    filename: 'rourkela-power-tariffs',
+    title: 'Rourkela Power Tariffs',
+    description: 'Tariff changes in Rourkela',
+    maxAgeDays: 30,
+    keywords: ['Rourkela power tariff'],
+  });
+  const editedOut = serialize(edited);
+  const before = original.split('\n');
+  const after = editedOut.split('\n');
+  assert(editedOut.includes('rourkela-power-tariffs'), 'the new feed is in the output');
+  // Every original line must still be present somewhere in the new output.
+  const afterSet = new Set(after);
+  const kept = before.filter((line) => line.trim() !== '' && afterSet.has(line));
+  assert(
+    kept.length >= before.filter((l) => l.trim() !== '').length - 2,
+    'adding a feed leaves the rest of the file untouched'
+  );
+
+  // Arrays of plain values stay on one line; nested objects are expanded.
+  assert.strictEqual(formatJson(['a', 'b'], 0), '["a", "b"]', 'plain arrays stay inline');
+  assert.strictEqual(formatJson([], 0), '[]', 'an empty array is []');
+  assert.strictEqual(formatJson({}, 0), '{}', 'an empty object is {}');
+  assert.strictEqual(
+    formatJson({ a: 1, b: 'x' }, 0),
+    '{\n  "a": 1,\n  "b": "x"\n}',
+    'objects are expanded with a two-space indent'
+  );
+}
+
+// --- manage-core: base64 --------------------------------------------------
+// The GitHub contents API returns base64. Non-ASCII must survive the trip.
+{
+  const text = 'Odisha ରାଉରକେଲା cricket 🚀';
+  const encoded = encodeBase64(text);
+  assert.strictEqual(decodeBase64(encoded), text, 'non-ASCII survives the base64 round trip');
+  assert.strictEqual(decodeBase64(encodeBase64('plain ascii')), 'plain ascii', 'ascii round trips');
+  assert.strictEqual(
+    decodeBase64(encodeBase64('a')).length,
+    1,
+    'a single character round trips'
+  );
 }
 
 console.log('All tests passed.');
