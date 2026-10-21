@@ -267,18 +267,43 @@ const { freshItems } = require('./notify.js');
   assert(kept.has('power') && kept.has('cut'), 'generic title keeps hyphen words');
 
   assert.throws(
-    () => validateConfig([{ filename: 'a', keywords: ['x'] }, { filename: 'a', keywords: ['y'] }], []),
+    () => validateConfig([{ filename: 'a', keywords: ['x'] }, { filename: 'a', keywords: ['y'] }], [], []),
     /duplicate filename/,
     'catches duplicate filename'
   );
   assert.throws(
-    () => validateConfig([{ filename: 'a', keywords: ['x'] }], [{ filename: 'b', sources: ['missing'] }]),
+    () => validateConfig([{ filename: 'a', keywords: ['x'] }], [{ filename: 'b', sources: ['missing'] }], []),
     /unknown source/,
     'catches unknown bundle source'
   );
   assert.doesNotThrow(
-    () => validateConfig([{ filename: 'a', keywords: ['x'] }], [{ filename: 'b', sources: ['a'] }]),
+    () => validateConfig([{ filename: 'a', keywords: ['x'] }], [{ filename: 'b', sources: ['a'] }], []),
     'accepts valid config'
+  );
+  assert.throws(
+    () => validateConfig([{ filename: 'a', keywords: ['x'] }], [], [{ label: 'A', slug: 'a', filenames: ['nope'] }]),
+    /category "a" unknown feed/,
+    'catches category pointing at a feed that does not exist'
+  );
+  assert.throws(
+    () => validateConfig([{ filename: 'a', keywords: ['x'] }], [], [{ slug: 'a', filenames: ['a'] }]),
+    /category needs "label" and "slug"/,
+    'catches category missing label'
+  );
+  assert.doesNotThrow(
+    () => validateConfig([{ filename: 'a', keywords: ['x'] }], [], [{ label: 'A', slug: 'a', filenames: ['a'] }]),
+    'accepts valid category'
+  );
+
+  // The shape the manage page produces: a feed with a title filter, placed
+  // in a brand new category. Both must validate.
+  assert.doesNotThrow(
+    () => validateConfig(
+      [{ filename: 'rourkela-cricket', keywords: ['cricket'], filter: ['cricket', 'T20'] }],
+      [],
+      [{ label: 'Cricket', slug: 'cricket', accent: '#c2185b', full: false, filenames: ['rourkela-cricket'] }]
+    ),
+    'accepts a feed with a filter in a new category'
   );
 }
 
@@ -364,7 +389,10 @@ const { freshItems } = require('./notify.js');
       mk('Same big story in Rourkela reported again', 'https://x/1', 'Mon, 20 Oct 2026 12:00:00 GMT'),
     ] },
   ];
-  const pages = buildPages(results);
+  const categories = [
+    { label: 'Rourkela', slug: 'rourkela', accent: '#e86a17', full: false, filenames: ['rourkela', 'rourkela-crime'] },
+  ];
+  const pages = buildPages(results, categories);
   assert(pages.html.includes('PN Broadcast'), 'index page built');
   const archives = pages.archives.map((a) => a.filename);
   assert(archives.includes('category-rourkela.html'), 'rourkela archive page built');
@@ -375,6 +403,43 @@ const { freshItems } = require('./notify.js');
   assert(rourkela.html.includes('Back to PN Broadcast'), 'archive links back to the index');
   assert(pages.html.includes('category-rourkela.html'), 'index links to the archive page');
   assert(pages.html.includes('All 2 stories'), 'index shows the all-stories link');
+
+  // A config with no categories is allowed: every feed lands in "More"
+  // rather than disappearing.
+  const noCats = buildPages(results, []);
+  assert(noCats.html.includes('PN Broadcast'), 'index builds without categories');
+  assert(noCats.html.includes('More'), 'uncategorised feeds fall into the More section');
+  assert(
+    noCats.archives.map((a) => a.filename).includes('category-more.html'),
+    'the More fallback gets its own archive page'
+  );
+
+  // A brand new category - the shape the manage page creates - gets its own
+  // archive page, its own tab, and is linked from the index.
+  const withNew = buildPages(results, [
+    { label: 'Rourkela', slug: 'rourkela', accent: '#e86a17', full: false, filenames: ['rourkela', 'rourkela-crime'] },
+    { label: 'Cricket', slug: 'cricket', accent: '#c2185b', full: false, filenames: ['rourkela'] },
+  ]);
+  assert(
+    withNew.archives.map((a) => a.filename).includes('category-cricket.html'),
+    'a new category gets its own archive page'
+  );
+  const cricket = withNew.archives.find((a) => a.filename === 'category-cricket.html');
+  assert(cricket.html.includes('<title>Cricket - all stories'), 'new category archive has its own title');
+  assert(cricket.html.includes('Back to PN Broadcast'), 'new category archive links back to the index');
+  assert(withNew.html.includes('category-cricket.html'), 'index links to the new category archive');
+  assert(withNew.html.includes('>Cricket<'), 'new category gets a tab on the index');
+
+  // A category whose feeds all failed to load must not break the build.
+  const emptyCat = buildPages(results, [
+    { label: 'Rourkela', slug: 'rourkela', accent: '#e86a17', full: false, filenames: ['rourkela', 'rourkela-crime'] },
+    { label: 'Ghost', slug: 'ghost', accent: '#607d8b', full: false, filenames: ['never-fetched'] },
+  ]);
+  assert(emptyCat.html.includes('PN Broadcast'), 'a category with no feeds does not break the build');
+  assert(
+    !emptyCat.archives.map((a) => a.filename).includes('category-ghost.html'),
+    'a category with no feeds gets no archive page'
+  );
 }
 
 // --- buildHero ------------------------------------------------------------
@@ -385,7 +450,7 @@ const { freshItems } = require('./notify.js');
   const now = Date.now();
   const mk = (title, ageMs, link) => ({
     title,
-    link: link || 'https://example.com/' + title,
+    link: link || `https://example.com/${title}`,
     pubDate: new Date(now - ageMs).toUTCString(),
   });
   const r1 = [mk('r1', 10 * 60 * 1000), mk('r2', 20 * 60 * 1000), mk('r3', 30 * 60 * 1000)];

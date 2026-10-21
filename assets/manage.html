@@ -1,0 +1,233 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Manage feeds - PN Broadcast</title>
+  <style>
+    :root {
+      /* Tells the browser to render native controls (select dropdowns, the
+         colour swatch, scrollbars) in the same scheme as the page. */
+      color-scheme: light dark;
+      --bg: #fafafa;
+      --fg: #1a1a1a;
+      --muted: #6b7280;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --accent: #e86a17;
+      --ok: #2e7d32;
+      --err: #c62828;
+      --font-head: Georgia, 'Times New Roman', serif;
+      --font-body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101418;
+        --fg: #e7e9ec;
+        --muted: #9aa3ad;
+        --card: #171c22;
+        --border: #262d35;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 60rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+    h1 { font-family: var(--font-head); font-size: 1.7rem; margin: 0 0 0.25rem; }
+    h2 { font-size: 1.05rem; margin: 2rem 0 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+    .sub { color: var(--muted); margin: 0; }
+    a { color: var(--accent); }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; margin-bottom: 1rem; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin: 0.9rem 0 0.25rem; }
+    label:first-of-type { margin-top: 0; }
+    input[type=text], input[type=password], input[type=number], select, textarea {
+      width: 100%;
+      padding: 0.5rem 0.6rem;
+      font: inherit;
+      font-size: 0.92rem;
+      color: var(--fg);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    textarea { min-height: 4.5rem; resize: vertical; }
+    input[type=color] {
+      width: 100%;
+      height: 2.4rem;
+      padding: 0.2rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .hint { color: var(--muted); font-size: 0.8rem; margin: 0.25rem 0 0; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+    @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+    button {
+      font: inherit;
+      font-size: 0.92rem;
+      font-weight: 600;
+      padding: 0.55rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--fg);
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .actions { margin-top: 1.2rem; display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .msg { margin-top: 0.9rem; padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.88rem; display: none; }
+    .msg.show { display: block; }
+    .msg.ok { background: rgba(46,125,50,0.12); border: 1px solid var(--ok); color: var(--ok); }
+    .msg.err { background: rgba(198,40,40,0.12); border: 1px solid var(--err); color: var(--err); }
+    .preview { white-space: pre-wrap; font-size: 0.78rem; max-height: 22rem; overflow: auto; margin: 0.5rem 0 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 0.45rem 0.4rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    td code { font-size: 0.82rem; }
+    .pill { display: inline-block; font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+    .pill.on { border-color: var(--ok); color: var(--ok); }
+    .steps { counter-reset: s; padding-left: 1.2rem; color: var(--muted); font-size: 0.88rem; }
+    .steps li { margin-bottom: 0.4rem; }
+    details summary { cursor: pointer; font-weight: 600; font-size: 0.92rem; }
+    code { background: rgba(127,127,127,0.15); padding: 0.1rem 0.3rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>PN Broadcast - Manage feeds</h1>
+      <p class="sub">Add or remove feeds from the browser. Changes go through a Pull Request you review and merge.</p>
+    </header>
+
+    <div class="card">
+      <h2 style="margin-top:0">Step 1 - connect to GitHub</h2>
+      <label for="token">Personal access token</label>
+      <input type="password" id="token" placeholder="github_pat_..." autocomplete="off">
+      <p class="hint">
+        Create a <strong>fine-grained</strong> token for this repo with
+        <strong>Contents: read and write</strong> and <strong>Pull requests: read and write</strong>.
+        The token stays in this browser only and is sent only to api.github.com.
+      </p>
+      <label for="branch">Branch to work on</label>
+      <input type="text" id="branch" value="main">
+      <div class="actions">
+        <button class="primary" id="connect">Load feeds</button>
+        <span class="sub" id="repoLabel" style="font-size:0.85rem;align-self:center"></span>
+      </div>
+      <div class="msg" id="connectMsg" aria-live="polite"></div>
+    </div>
+
+    <div class="card" id="editorCard" style="display:none">
+      <h2 style="margin-top:0">Step 2 - add a feed</h2>
+      <label for="title">Feed title</label>
+      <input type="text" id="title" placeholder="Rourkela Power Cuts">
+      <label for="kind">Source type</label>
+      <select id="kind">
+        <option value="keywords">Google News search (keywords)</option>
+        <option value="url">Direct RSS or JSON URL</option>
+        <option value="freehire">freehire.me job search (JSON)</option>
+      </select>
+      <p class="hint" id="kindHint"></p>
+      <div id="kwBox">
+        <label for="keywords">Search terms - one per line</label>
+        <textarea id="keywords" placeholder="Rourkela power cut&#10;electricity outage"></textarea>
+        <p class="hint">Each line becomes a quoted phrase. No URL encoding needed.</p>
+      </div>
+      <div id="urlBox" style="display:none">
+        <label for="url">Feed URL</label>
+        <input type="text" id="url" placeholder="https://example.com/feed">
+      </div>
+      <div class="row">
+        <div>
+          <label for="section">Section on the site</label>
+          <select id="section"></select>
+        </div>
+        <div>
+          <label for="bundle">Also add to bundle</label>
+          <select id="bundle"></select>
+        </div>
+      </div>
+      <div id="newSectionBox" style="display:none">
+        <div class="row">
+          <div>
+            <label for="newSection">New section name</label>
+            <input type="text" id="newSection" placeholder="Cricket">
+          </div>
+          <div>
+            <label for="newSectionAccent">Section colour</label>
+            <input type="color" id="newSectionAccent" value="#c2185b">
+          </div>
+        </div>
+        <p class="hint">A new section is created on the site, with its own archive page and tab.</p>
+      </div>
+      <div class="row">
+        <div>
+          <label for="maxAge">Max age in days</label>
+          <input type="number" id="maxAge" value="30" min="1" max="365">
+        </div>
+        <div>
+          <label for="exclude">Exclude these words (optional)</label>
+          <input type="text" id="exclude" placeholder="sports, movie">
+        </div>
+      </div>
+      <label for="filter">Only keep items whose title mentions (optional)</label>
+      <input type="text" id="filter" placeholder="Rourkela, Raurkela">
+      <p class="hint">Use this when a source is broad but you want one place only. Comma separated.</p>
+      <label for="notify">Push to phone</label>
+      <select id="notify">
+        <option value="no">No</option>
+        <option value="yes">Yes - and show a topic name</option>
+      </select>
+      <div id="topicBox" style="display:none">
+        <label for="topic">Topic name on ntfy.sh</label>
+        <input type="text" id="topic" placeholder="pn-broadcast-rourkela-power">
+        <p class="hint">Subscribe to this exact name in the ntfy app. Leave blank to use the default.</p>
+      </div>
+      <div class="actions">
+        <button class="primary" id="save">Create pull request</button>
+        <button id="preview">Preview change</button>
+        <button id="reset" style="display:none">Start a new pull request</button>
+      </div>
+      <div class="msg" id="saveMsg" aria-live="polite"></div>
+    </div>
+
+    <div class="card" id="listCard" style="display:none">
+      <h2 style="margin-top:0">Current feeds</h2>
+      <table>
+        <thead><tr><th>Title</th><th>File</th><th>Section</th><th>Push</th><th></th></tr></thead>
+        <tbody id="feedRows"></tbody>
+      </table>
+      <div class="actions">
+        <button id="removeBtn" disabled>Remove selected feed</button>
+      </div>
+      <div class="msg" id="removeMsg" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>How the pull request works</summary>
+        <ol class="steps">
+          <li>The page reads <code>feeds.json</code> from your repo.</li>
+          <li>Your change is applied to a copy in the browser.</li>
+          <li>A new branch is created with the change and a pull request is opened.</li>
+          <li>You review the diff on GitHub and tap Merge.</li>
+          <li>The next refresh, within 30 minutes, picks it up.</li>
+        </ol>
+        <p class="hint">Nothing is written to your repo until you merge the pull request.</p>
+      </details>
+    </div>
+  </div>
+
+<script type="module" src="manage.js"></script>
+</body>
+</html>

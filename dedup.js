@@ -93,7 +93,7 @@ function buildFeedUrl(feed) {
       const t = String(term || '').trim();
       return t.includes(' ') ? `-"${t}"` : `-${t}`;
     });
-    query += ' ' + parts.join(' ');
+    query += ` ${parts.join(' ')}`;
   }
   const params = new URLSearchParams({ q: query, ...GOOGLE_NEWS_LOCALE });
   return `${GOOGLE_NEWS_SEARCH}?${params}`;
@@ -180,19 +180,20 @@ async function fetchJsonWithTimeout(url) {
   const timeout = new Promise((_, reject) => {
     timer = setTimeout(() => reject(new Error(`fetch timeout after ${FETCH_TIMEOUT_MS}ms`)), FETCH_TIMEOUT_MS);
   });
-  const req = fetch(url, {
-    headers: { Accept: 'application/json', 'User-Agent': 'PN Broadcast (feeds-dedup)' },
-  })
-    .then((res) => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    })
-    .finally(() => {
-      if (timer) clearTimeout(timer);
+  // The timeout covers the whole request, not just the JSON parse.
+  const req = (async () => {
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': 'PN Broadcast (feeds-dedup)' },
     });
-  return Promise.race([req, timeout]);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  })();
+  try {
+    return await Promise.race([req, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
-
 /** Fetches JSON with retry. Throws after all attempts, caller logs [fail]. */
 async function fetchJsonWithRetry(url) {
   let lastErr = null;
@@ -211,9 +212,10 @@ async function fetchJsonWithRetry(url) {
 
 /**
  * Fails fast on config mistakes. Call once in main before fetching.
- * Checks duplicate filenames and unknown bundle sources.
+ * Checks duplicate filenames, unknown bundle sources, and category
+ * entries that point at feeds which do not exist.
  */
-function validateConfig(feeds, bundles) {
+function validateConfig(feeds, bundles, categories) {
   const seen = new Set();
   for (const feed of feeds) {
     if (!feed.filename) throw new Error('feed missing "filename"');
@@ -230,6 +232,12 @@ function validateConfig(feeds, bundles) {
     }
     if (names.has(bundle.filename) && seen.has(bundle.filename)) {
       throw new Error(`bundle filename "${bundle.filename}" collides with feed filename`);
+    }
+  }
+  for (const cat of categories || []) {
+    if (!cat.slug || !cat.label) throw new Error('category needs "label" and "slug"');
+    for (const f of cat.filenames || []) {
+      if (!names.has(f)) throw new Error(`category "${cat.slug}" unknown feed "${f}"`);
     }
   }
 }
@@ -389,7 +397,7 @@ function displayTitle(item) {
 function buildRssXml(feed, items) {
   // Self link for validators and readers. Base feeds carry filename,
   // bundles are passed with filename too, so prefer SITE_URL + filename.
-  const selfUrl = feed.filename ? `${SITE_URL}/${feed.filename}.xml` : (feed.link || SITE_URL + '/');
+  const selfUrl = feed.filename ? `${SITE_URL}/${feed.filename}.xml` : (feed.link || `${SITE_URL}/`);
   const itemsXml = items
     .map((item) => {
       // Fallback chain: pubDate -> isoDate -> now. Avoids empty pubDate
@@ -419,17 +427,12 @@ function buildRssXml(feed, items) {
 </rss>`;
 }
 
-// Category grouping for the index page. Order here = order on the page.
-// "full" categories span the full width (breaking bundles on top).
-// Each category also gets its own archive page with every story in it.
-const CATEGORIES = [
-  { label: 'Breaking', slug: 'breaking', accent: '#c62828', full: true, filenames: ['rourkela-breaking', 'odisha-breaking', 'ai-breaking', 'webdev-breaking', 'jobs-breaking'] },
-  { label: 'Rourkela', slug: 'rourkela', accent: '#e86a17', full: false, filenames: ['rourkela', 'rourkela-crime', 'rourkela-accident', 'rourkela-weather', 'rourkela-exams', 'rourkela-govt', 'rourkela-power', 'rourkela-health', 'satya-alert'] },
-  { label: 'Odisha', slug: 'odisha', accent: '#2e7d32', full: false, filenames: ['odisha', 'bhubaneswar-crime', 'odisha-crime', 'odisha-accident', 'odisha-weather', 'odisha-exams', 'odisha-govt', 'odisha-power', 'odisha-health', 'oshb'] },
-  { label: 'AI and WebDev', slug: 'ai-and-webdev', accent: '#1565c0', full: false, filenames: ['ai-models', 'ai-safety', 'ai-pricing', 'ai-industry', 'webdev-frontend', 'webdev-backend', 'webdev-devops', 'webdev-security'] },
-  { label: 'Jobs', slug: 'jobs', accent: '#00897b', full: false, filenames: ['india-tech-jobs', 'odisha-jobs'] },
-  { label: 'India and World', slug: 'india-and-world', accent: '#6a1b9a', full: false, filenames: ['india-breaking', 'world-breaking', 'bengaluru-power'] },
-];
+// Note on categories: the list of site sections (label, slug, accent, and
+// which feeds go in them) lives in feeds.json under "categories", not here.
+// That is what lets the manage UI add a feed to a real section without
+// touching this file. Order in that array = order on the page. A "full"
+// category spans the full width (breaking bundles on top). Each category
+// also gets its own archive page with every story in it.
 
 /** One feed card: title, description, top headlines. "big" enlarges headlines (breaking). */
 function renderFeedCard(result, big) {
@@ -485,7 +488,7 @@ function renderTabs(cats) {
   const tabs = [{ slug: 'all', label: 'All' }]
     .concat(cats.map((c) => ({ slug: c.slug, label: c.label })));
   const links = tabs
-    .map((t) => `<a href="#${t.slug === 'all' ? 'top' : 'cat-' + t.slug}" data-tab="${t.slug}">${escapeText(t.label)}</a>`)
+    .map((t) => `<a href="#${t.slug === 'all' ? 'top' : `cat-${t.slug}`}" data-tab="${t.slug}">${escapeText(t.label)}</a>`)
     .join('\n          ');
   return `
       <nav class="tabs">
@@ -791,26 +794,25 @@ const PAGE_CSS = `
     .archive li a.headline:hover { text-decoration: underline; }
     .archive .meta { display: block; color: var(--muted); font-size: 0.78rem; margin-top: 0.15rem; }
     footer { margin-top: 3rem; color: var(--muted); font-size: 0.85rem; text-align: center; }
+    footer a { color: var(--muted); }
 `;
-
-/** Builds the readable index page: masthead, grouped categories, feed cards. */
-function buildIndexHtml(results) {
-  return buildPages(results).html;
-}
 
 /**
  * Builds the index page and one archive page per category.
  * Returns { html, archives } where archives is a list of
  * { filename, html } pairs to write to public/.
+ * categories comes from feeds.json so the manage UI can edit it.
  */
-function buildPages(results) {
+function buildPages(results, categories) {
   const byFilename = {};
   for (const result of results) byFilename[result.feed.filename] = result;
 
+  // A config without categories is allowed: every feed falls into "More".
+  const cats = Array.isArray(categories) ? categories : [];
   const sections = [];
   const shownCats = [];
   const archives = [];
-  for (const cat of CATEGORIES) {
+  for (const cat of cats) {
     const catResults = cat.filenames.map((f) => byFilename[f]).filter(Boolean);
     if (catResults.length > 0) {
       const items = buildCategoryItems(cat, byFilename);
@@ -823,7 +825,7 @@ function buildPages(results) {
     }
   }
   // Safety net: any feed not listed above still appears.
-  const known = new Set(CATEGORIES.flatMap((c) => c.filenames));
+  const known = new Set(cats.flatMap((c) => c.filenames));
   const leftovers = results.filter((r) => !known.has(r.feed.filename));
   if (leftovers.length > 0) {
     const more = { label: 'More', slug: 'more', accent: '#607d8b', full: false, filenames: leftovers.map((r) => r.feed.filename) };
@@ -862,36 +864,32 @@ function buildPages(results) {
     ${tabs}
     ${hero}
     ${sections.join('\n')}
-    <footer>Generated by PN Broadcast. Personal project, view-only.</footer>
+    <footer>Generated by PN Broadcast. Personal project, view-only. <a href="manage.html">Manage feeds</a></footer>
   </div>
 <script>
-(function () {
-  var tabs = document.querySelectorAll('.tabs a');
-  var sections = document.querySelectorAll('.category');
-  function show(name) {
-    for (var i = 0; i < tabs.length; i++) {
-      if (tabs[i].getAttribute('data-tab') === name) tabs[i].classList.add('active');
-      else tabs[i].classList.remove('active');
+(() => {
+  const tabs = [...document.querySelectorAll('.tabs a')];
+  const sections = [...document.querySelectorAll('.category')];
+  const show = (name) => {
+    for (const tab of tabs) {
+      tab.classList.toggle('active', tab.getAttribute('data-tab') === name);
     }
-    for (var j = 0; j < sections.length; j++) {
-      var s = sections[j];
-      s.style.display = (name === 'all' || s.getAttribute('data-cat') === name) ? '' : 'none';
+    for (const section of sections) {
+      const visible = name === 'all' || section.getAttribute('data-cat') === name;
+      section.style.display = visible ? '' : 'none';
     }
-  }
-  for (var k = 0; k < tabs.length; k++) {
-    tabs[k].addEventListener('click', function (e) {
-      e.preventDefault();
-      var name = this.getAttribute('data-tab');
+  };
+  for (const tab of tabs) {
+    tab.addEventListener('click', (event) => {
+      event.preventDefault();
+      const name = tab.getAttribute('data-tab');
       show(name);
-      try { history.replaceState(null, '', '#' + name); } catch (err) {}
+      try { history.replaceState(null, '', '#' + name); } catch { /* older browsers */ }
     });
   }
-  var raw = (location.hash || '#all').slice(1);
-  var initial = raw.indexOf('cat-') === 0 ? raw.slice(4) : raw;
-  var known = false;
-  for (var m = 0; m < tabs.length; m++) {
-    if (tabs[m].getAttribute('data-tab') === initial) known = true;
-  }
+  const raw = (location.hash || '#all').slice(1);
+  const initial = raw.startsWith('cat-') ? raw.slice(4) : raw;
+  const known = tabs.some((tab) => tab.getAttribute('data-tab') === initial);
   show(known ? initial : 'all');
 })();
 </script>
@@ -909,7 +907,7 @@ function buildOpml(feeds, bundles) {
   const outlines = feeds.concat(bundles)
     .map((feed) => {
       const xmlUrl = `${SITE_URL}/${feed.filename}.xml`;
-      return `    <outline type="rss" text="${escapeText(feed.title)}" title="${escapeText(feed.title)}" xmlUrl="${escapeText(xmlUrl)}" htmlUrl="${escapeText(SITE_URL + '/')}"/>`;
+      return `    <outline type="rss" text="${escapeText(feed.title)}" title="${escapeText(feed.title)}" xmlUrl="${escapeText(xmlUrl)}" htmlUrl="${escapeText(`${SITE_URL}/`)}"/>`;
     })
     .join('\n');
 
@@ -984,12 +982,12 @@ function loadConfig() {
   try {
     raw = fs.readFileSync(CONFIG_FILE, 'utf8');
   } catch (err) {
-    throw new Error(`Cannot read feeds.json: ${err.message}`);
+    throw new Error(`Cannot read feeds.json: ${err.message}`, { cause: err });
   }
   try {
     return JSON.parse(raw);
   } catch (err) {
-    throw new Error(`feeds.json is not valid JSON: ${err.message}`);
+    throw new Error(`feeds.json is not valid JSON: ${err.message}`, { cause: err });
   }
 }
 
@@ -1045,8 +1043,10 @@ async function main() {
   const config = loadConfig();
   const feeds = Array.isArray(config.feeds) ? config.feeds : [];
   const bundles = Array.isArray(config.bundles) ? config.bundles : [];
+  // Category list lives in feeds.json so the manage UI can edit it.
+  const categories = Array.isArray(config.categories) ? config.categories : [];
   // Fail fast on typos: duplicate filenames, unknown bundle sources.
-  validateConfig(feeds, bundles);
+  validateConfig(feeds, bundles, categories);
   if (feeds.length === 0) {
     console.log('No feeds found in feeds.json - nothing to do.');
     return;
@@ -1099,7 +1099,7 @@ async function main() {
     const items = buildBundleItems(bundle, resultsByFilename);
     fs.writeFileSync(
       path.join(OUTPUT_DIR, `${bundle.filename}.xml`),
-      buildRssXml({ ...bundle, link: SITE_URL + '/' }, items),
+      buildRssXml({ ...bundle, link: `${SITE_URL}/` }, items),
       'utf8'
     );
     const totalIn = (bundle.sources || []).reduce(
@@ -1114,12 +1114,23 @@ async function main() {
   }
 
   if (results.length + bundleResults.length > 0) {
-    const pages = buildPages(results.concat(bundleResults));
+    const pages = buildPages(results.concat(bundleResults), categories);
     fs.writeFileSync(path.join(OUTPUT_DIR, 'index.html'), pages.html, 'utf8');
     for (const archive of pages.archives) {
       fs.writeFileSync(path.join(OUTPUT_DIR, archive.filename), archive.html, 'utf8');
     }
     console.log(`Wrote index.html + ${pages.archives.length} category archive pages.`);
+  }
+
+  // The manage UI is a static page kept in assets/ and copied here, since
+  // public/ is gitignored and rebuilt from scratch on every run. It is
+  // copied even if every feed failed, so the page stays reachable.
+  // The page loads manage.js as a module, so both files must be copied.
+  for (const name of ['manage.html', 'manage.js']) {
+    const src = path.join(__dirname, 'assets', name);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, path.join(OUTPUT_DIR, name));
+    }
   }
 
   const totalIn = results.reduce((sum, r) => sum + r.total, 0);

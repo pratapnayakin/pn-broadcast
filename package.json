@@ -5,13 +5,19 @@
   "main": "dedup.js",
   "scripts": {
     "start": "node dedup.js",
-    "test": "node test.js"
+    "test": "node test.js",
+    "lint": "eslint ."
   },
   "engines": {
-    "node": ">=18"
+    "node": "^20.19.0 || ^22.13.0 || >=24"
   },
   "dependencies": {
     "rss-parser": "^3.13.0"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0"
+  }
 }

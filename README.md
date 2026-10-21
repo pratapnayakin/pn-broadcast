@@ -24,8 +24,8 @@ them every 30 minutes - so you never have to search Google News again.
 The 30-second pitch: "A script runs every 30 minutes on GitHub for free. It reads
 a list of topics I care about, fetches the latest news from Google, removes
 duplicate stories, and publishes clean RSS feeds to a free website. I
-subscribe to those feeds in my RSS reader. Adding a topic is just editing a
-text file."
+subscribe to those feeds in my RSS reader. Adding a topic takes one line in
+a web form, and I review the change as a pull request before it goes live."
 
 Why these building blocks:
 
@@ -45,6 +45,7 @@ Why these building blocks:
 | What | URL |
 |---|---|
 | Index page (open in a browser - lists every feed and its URL) | https://pratapnayakin.github.io/pn-broadcast/ |
+| Manage page (add/remove feeds from the browser, no JSON editing) | https://pratapnayakin.github.io/pn-broadcast/manage.html |
 | One-click subscribe (OPML - import into any reader) | https://pratapnayakin.github.io/pn-broadcast/feeds.opml |
 | Odisha Breaking (merged bundle - one link for all Odisha alerts) | https://pratapnayakin.github.io/pn-broadcast/odisha-breaking.xml |
 | Rourkela Breaking (merged bundle - one link for all Rourkela alerts) | https://pratapnayakin.github.io/pn-broadcast/rourkela-breaking.xml |
@@ -72,12 +73,12 @@ regenerated every 30 minutes.
 ## How it works (architecture)
 
 ```
-GitHub Actions (30-minute cron, or on every push, or manual)
+GitHub Actions (30-minute tick, or on every push, or manual)
         |
         v
    node dedup.js
         |
-        |-- 1. reads feeds.json (the feed list - data, not code)
+        |-- 1. reads feeds.json (feeds, bundles, categories - data, not code)
         |-- 2. for each feed: builds/fetches a Google News RSS search URL
         |-- 3. dedupes the headlines (word-overlap scoring, per feed)
         |-- 4. writes public/<filename>.xml  (clean RSS 2.0)
@@ -85,6 +86,7 @@ GitHub Actions (30-minute cron, or on every push, or manual)
         |-- 6. writes public/index.html      (readable index - top 10 per feed, relative time, fresh-only top stories, tab bar)
         |-- 7. writes public/category-*.html (one archive page per category, every story)
         |-- 8. writes public/feeds.opml      (one-click subscribe list)
+        |-- 9. copies public/manage.html     (the add/remove feed form)
         |
         v
 upload-pages-artifact --> deploy-pages
@@ -96,17 +98,25 @@ https://pratapnayakin.github.io/pn-broadcast/  -->  your RSS reader
 Key idea: Google News returns the same story many times (once per publisher).
 This pipeline collapses those duplicates so you read each story once.
 
+A second, optional path goes the other way: the manage page in the browser
+reads `feeds.json` through the GitHub API and writes a pull request. That is
+how feeds are added without editing JSON.
+
 ---
 
 ## Project structure
 
 | File | Purpose |
 |---|---|
-| `feeds.json` | **The only file you edit day-to-day.** List of feeds (keywords or full URLs) plus optional bundles. |
+| `feeds.json` | **The config.** Feeds (keywords or full URLs), optional bundles, and the category list. Edited by hand or through the manage page. |
+| `assets/manage.html` | The manage page markup and styles. Copied to `public/manage.html` on every build. |
+| `assets/manage.js` | The manage page logic: an ES module loaded by the page. Copied to `public/manage.js`. |
 | `dedup.js` | The whole engine: fetch, dedupe, write XML + HTML. ~1000 lines, commented. |
 | `.github/workflows/update.yml` | The automation: runs the script and deploys to Pages. |
+| `.github/workflows/tick.yml` | The metronome: keeps the 30-minute refresh on a fixed grid. |
 | `notify.js` | Push notifications: finds new items since the last run and posts them to ntfy.sh. |
-| `package.json` | Declares the single dependency (`rss-parser`) and the `npm start` / `npm test` scripts. |
+| `eslint.config.js` | The coding standard, enforced by `npm run lint`. |
+| `package.json` | Declares the runtime dependency (`rss-parser`), the dev tooling (`eslint`), and the `npm start` / `npm test` / `npm run lint` scripts. |
 | `package-lock.json` | Pins exact dependency versions. Required by `npm ci` in the workflow. **Must be committed.** |
 | `.gitignore` | Keeps `node_modules/` and `public/` out of git (both are generated/restored). |
 | `public/` | Generated output. Never edit, never commit - rebuilt on every run. |
@@ -115,10 +125,15 @@ This pipeline collapses those duplicates so you read each story once.
 
 ## Requirements
 
+Requirements:
 - Node.js 18+ and npm (only for running locally; GitHub Actions provides its own Node 22)
 - Git and a GitHub account
 - A **public** repository (GitHub Pages is free for public repos)
 - Nothing else. Google News RSS is free and needs no authentication or API key.
+
+Optional, only if you want to use the manage page: a **fine-grained
+personal access token** for this one repository, with `Contents: Read and
+write` and `Pull requests: Read and write`. Everything else works without it.
 
 ---
 
@@ -130,6 +145,7 @@ cd pn-broadcast
 npm install        # restores dependencies from the lock file
 npm start          # same as: node dedup.js
 npm test           # runs the test suite (no network needed)
+npm run lint       # checks the coding standard
 ```
 
 Console output looks like:
@@ -193,6 +209,7 @@ An explicit `url` always wins over `keywords`.
 - Optional: `"filter": ["Rourkela", "Raurkela"]` keeps only items whose title
   contains one of these words (case-insensitive) - slices a broad source down
   to one topic. Works on any script (e.g. Odia titles).
+  Both the manage page and `feeds.json` can set this.
 - Optional: `"maxAgeDays": 30` drops items older than that many days
   (default 365; change `MAX_AGE_DAYS` in `dedup.js` for a global default).
   Items with a missing date are kept.
@@ -226,9 +243,128 @@ so you can subscribe to many topics through a single URL:
 - A source that failed this run is simply skipped for that run
 - Bundles appear on the index page and in `feeds.opml` like normal feeds
 
+### Categories - which section of the site a feed belongs to
+
+`feeds.json` also carries a `categories` array. It defines the sections of
+the index page, their order, their accent colour, and which feeds go in
+them:
+
+```json
+"categories": [
+  {
+    "label": "Rourkela",
+    "slug": "rourkela",
+    "accent": "#e86a17",
+    "full": false,
+    "filenames": ["rourkela", "rourkela-crime", "rourkela-weather"]
+  }
+]
+```
+
+- `label` - the heading shown on the page
+- `slug` - becomes `category-<slug>.html`, the archive page for that section
+- `accent` - the colour used for that section
+- `full` - `true` makes the section span the full page width (the Breaking
+  bundles at the top do this)
+- `filenames` - the feeds and bundles shown in this section
+
+Order in this array = order on the page. Every feed in `filenames` must
+exist in `feeds` or `bundles`, otherwise the build fails with a clear error.
+A feed not listed anywhere still appears - it falls into a "More" section at
+the bottom, so nothing is ever silently dropped.
+
+This array is what the manage page reads to build its section dropdown, which
+is why a feed added through the UI lands in a real section rather than a
+catch-all bucket.
+
 To add a feed: edit `feeds.json`, commit, push. The workflow deploys it
 automatically. To remove one: delete the entry. The full every-time checklist
 (including the RSS reader side) is below.
+
+---
+
+## The manage page (add feeds without editing JSON)
+
+`https://pratapnayakin.github.io/pn-broadcast/manage.html` is a small web form
+that adds and removes feeds from the browser - the way other RSS providers
+work. It edits the same `feeds.json`; it just does not make you type JSON.
+
+### How it works
+
+1. You paste a personal access token (once) and press **Load feeds**.
+2. The page reads `feeds.json` straight from the GitHub API - no server
+   involved, the browser talks to `api.github.com` directly.
+3. You fill the form: title, source type, search terms or URL, which section
+   of the site it belongs to, whether to push it to your phone.
+4. Press **Create pull request**. The page opens a branch, commits the new
+   `feeds.json`, and opens a pull request.
+5. You review the diff on GitHub and press **Merge**.
+6. The next refresh picks it up (within 30 minutes).
+
+Nothing is written to the repo until you merge the pull request. The page can
+only ever open a pull request - it cannot merge one.
+
+### Adding any topic, in any section
+
+Every field the engine understands is on the form, so you never need to open
+`feeds.json`:
+
+| Field | What it does |
+|---|---|
+| **Feed title** | The name shown on the site. Also becomes the file name. |
+| **Source type** | Google News search (keywords) / direct RSS or JSON URL / freehire.me job search. |
+| **Search terms** | One phrase per line. Each becomes a quoted phrase, joined with `OR`. |
+| **Section on the site** | Which section of the index page it belongs to. |
+| **+ Create a new section** | Makes a brand new section, with its own tab and archive page. |
+| **Also add to bundle** | Optionally merges it into a "Breaking" bundle. |
+| **Max age in days** | Drops items older than this. |
+| **Exclude these words** | Removes noise from a Google News search. |
+| **Only keep items whose title mentions** | Slices a broad source down to one topic - e.g. a state-wide feed, but only your town. |
+| **Push to phone** | Sends new headlines to ntfy.sh, with an optional custom topic name. |
+
+**A new feed always lands in a real, named section** - never in a catch-all
+"More" bucket. Pick an existing section, or pick **+ Create a new section**
+and type a name; the page creates the section (label, slug, colour) and puts
+the feed in it. That section then gets its own tab on the index and its own
+archive page at `category-<slug>.html`.
+
+**Duplicate protection.** The page refuses a feed whose title matches an
+existing feed, and refuses a new section whose name matches an existing one,
+with a message telling you what to do instead. A feed whose title is
+different but nearly the same would otherwise pull the same stories twice.
+
+### The token
+
+Create a **fine-grained** personal access token:
+
+- GitHub -> Settings -> Developer settings -> Personal access tokens ->
+  Fine-grained tokens -> Generate new token
+- **Resource owner**: your account
+- **Repository access**: *Only select repositories* -> `pn-broadcast`
+- **Repository permissions**:
+  - Contents: **Read and write**
+  - Pull requests: **Read and write**
+- Nothing else. No account permissions, no other repositories.
+
+The token is stored in the browser's `localStorage` and is sent only to
+`api.github.com`. It never reaches this site (the site is static - there is
+no server to receive it). To revoke it, delete it on GitHub.
+
+### Things worth knowing
+
+- **The page is public.** Anyone can open it, but without a token that can
+  write to this repo, nothing happens. The token is the security boundary.
+- **The diff stays small.** The page writes `feeds.json` in exactly the format
+  the file already uses, so the pull request shows only the lines that
+  actually changed - not the whole file rewritten.
+- **Several edits, one pull request.** If you add or remove more than one feed
+  before merging, they all land on the same branch and update the same pull
+  request. Press **Start a new pull request** to begin a fresh one.
+- **The section dropdown comes from `feeds.json`.** A new feed lands in a real
+  section (Rourkela, Odisha, Jobs, ...), not a catch-all bucket. You can also
+  create a new section straight from the page.
+- **The RSS reader side is still manual.** After merging, add the new
+  `<filename>.xml` URL to your reader yourself, or re-import `feeds.opml`.
 
 ---
 
@@ -343,14 +479,49 @@ So the clock lives in the repository instead:
 
 ---
 
+## Coding standard
+
+`npm run lint` runs ESLint (v10, flat config in `eslint.config.js`). It
+enforces the style the existing code already uses, so the standard is
+checked rather than remembered:
+
+- `const` by default, `let` only when reassigned, **never `var`**
+- arrow functions for callbacks, template literals over string concatenation
+- `async`/`await` instead of promise chains
+- `TextDecoder`/`TextEncoder` for base64, not the deprecated `escape`/`unescape`
+- `structuredClone` for deep copies, not `JSON.parse(JSON.stringify(...))`
+- DOM APIs (`textContent`, `createElement`) instead of `innerHTML`, so user
+  data can never be injected as markup
+- `eqeqeq`, no unused variables, no implicit globals
+
+The lint step runs in CI as a **separate job, in parallel with the deploy**,
+so a style error is visible but can never stop the feeds from publishing.
+The deploy job installs production dependencies only (`npm ci --omit=dev`),
+so the linter is not even present on that path.
+
+The manage page (`assets/manage.html` + `assets/manage.js`) is linted by the
+same config. Its script lives in its own file rather than inline in the HTML
+precisely so a linter can read it.
+
+Requires Node `^20.19.0 || ^22.13.0 || >=24` (ESLint 10's own requirement).
+
+---
+
 ## Adding or removing a feed - the every-time checklist
+
+There are two ways to do it: through the **manage page** (a form in your
+browser) or by **editing `feeds.json`** directly. Both end the same way - a
+change on `main`, then the next refresh deploys it.
 
 The git side is automatic after you push; the RSS reader side is always
 manual - the site updates, your reader does not.
 
 ### When you ADD a feed
 
-1. Edit `feeds.json` - add the entry (keywords or url)
+1. Either use the [manage page](#the-manage-page-add-feeds-without-editing-json)
+   (it opens a pull request you merge), or edit `feeds.json` - add the entry
+   (keywords or url) and its `filename` to the right section's `filenames`
+   list.
 2. Optional but wise: run `npm start` and check `public/index.html`
 3. Commit and push to `main`
 4. Wait for the green workflow run (~30s) - the new `<filename>.xml` is live
@@ -360,7 +531,9 @@ manual - the site updates, your reader does not.
 
 ### When you REMOVE a feed
 
-1. Delete the entry from `feeds.json`
+1. Either use the manage page (pick the feed, press **Remove selected feed**,
+   merge the pull request), or delete the entry from `feeds.json` and remove
+   its `filename` from any section's `filenames` list.
 2. Commit and push to `main`
 3. The next workflow run rebuilds `public/` from scratch - the old
    `<filename>.xml` will 404
@@ -513,21 +686,41 @@ Read this section honestly - these are the edges of the system.
 - Node 20 reached end-of-life in April 2026; the workflow pins Node 22 on
   purpose.
 
+### The manage page's security model
+
+- **The page itself is public** and has no login. That is deliberate: a
+  static site has no server to authenticate against. The real gate is the
+  token, and the page can only ever open a pull request - it cannot merge
+  one, and it cannot delete anything.
+- **The token lives in `localStorage`**, which means any script running on
+  that origin could read it. The page is static and contains no third-party
+  scripts, no analytics, and no user-supplied HTML, so the practical risk is
+  low. If it ever matters, use a token scoped to this one repository with
+  only Contents and Pull requests, and revoke it on GitHub when you are done.
+- **A token in a browser is a real trade-off.** It buys a no-server UI at the
+  cost of a credential that lives outside GitHub's session controls. The
+  alternative - editing `feeds.json` directly - has no such credential and
+  remains fully supported. If you would rather not hold a token in the
+  browser, just edit the file; nothing else changes.
+
 ---
 
 ## Maintenance cheat sheet
 
 | Task | How |
 |---|---|
-| Add a feed | Edit `feeds.json` (keywords or url), commit, push |
-| Remove a feed | Delete its entry from `feeds.json`, commit, push |
+| Add a feed | Use the manage page (opens a pull request), or edit `feeds.json` and commit |
+| Remove a feed | Use the manage page, or delete its entry from `feeds.json` and commit |
+| Add a new site section | Use the manage page ("+ Create a new section"), or add a block to `categories` in `feeds.json` |
 | Force an instant refresh | Actions tab -> "Update News Feed" -> "Run workflow" |
+| Check the coding standard | `npm run lint` |
 | Make dedup more aggressive | Lower `SIMILARITY_THRESHOLD` in `dedup.js` (e.g. 0.40) |
 | Make dedup safer | Raise `SIMILARITY_THRESHOLD` (e.g. 0.65) |
 | Ignore more common words | Add to the `STOPWORDS` set in `dedup.js` |
 | Exclude noisy terms from a feed | Add an `"exclude"` list to that feed in `feeds.json` |
 | Slice a broad source to one topic | Add a `"filter"` list to that feed in `feeds.json` |
-| Change refresh frequency | Edit the `cron` line in `.github/workflows/update.yml` |
+| Add or rename a site section | Edit the `categories` array in `feeds.json` |
+| Change refresh frequency | Edit `INTERVAL_MINUTES` in `.github/workflows/tick.yml` |
 | Change locale for keyword feeds | Edit `GOOGLE_NEWS_LOCALE` in `dedup.js` |
 | Change the age cutoff | Set `maxAgeDays` per feed in `feeds.json`, or `MAX_AGE_DAYS` in `dedup.js` |
 | Change what a bundle includes | Edit its `sources` list in `feeds.json` |
@@ -548,6 +741,12 @@ Read this section honestly - these are the edges of the system.
 | Genuinely different stories merged | Threshold too low | Raise `SIMILARITY_THRESHOLD` slightly |
 | `npm start` says "Cannot read feeds.json" | Running from the wrong directory | Run from the repo root |
 | "feeds.json is not valid JSON" | Typo while editing (trailing comma, unquoted string) | Fix the JSON; the error message includes the position |
+| Manage page says "Bad credentials" | The token expired, was revoked, or was pasted with spaces | Generate a new fine-grained token and paste it without spaces |
+| Manage page says "could not create pull request" | Token lacks Pull requests: write | Add Pull requests: Read and write to the token's repository permissions |
+| Manage page says "A feed called X already exists" | A feed with that title is already in the list | Remove it first, or give the new one a different title |
+| Manage page says "A section called X already exists" | That section is already in the list | Pick it from the dropdown instead of creating a new one |
+| Manage page opens but the section list is empty | `feeds.json` has no `categories` array | Add the `categories` array (see above) |
+| Manage page 404s | The page is copied at build time | Push the commit and wait for a deploy; `public/` is rebuilt from scratch each run |
 
 ---
 
@@ -555,8 +754,9 @@ Read this section honestly - these are the edges of the system.
 
 - Repo: https://github.com/pratapnayakin/pn-broadcast (public)
 - Site: https://pratapnayakin.github.io/pn-broadcast/
+- Manage page: https://pratapnayakin.github.io/pn-broadcast/manage.html
 - Engine: `dedup.js` (Node, single dependency: `rss-parser`)
-- Config: `feeds.json` (keywords for simple feeds, `url` for complex ones)
+- Config: `feeds.json` (feeds, bundles, categories)
 - Subscribe once: import `feeds.opml` into any RSS reader
 - Refresh: on a fixed grid via `tick.yml` (30 min by default) + on every push to `main`
 - Cost: zero

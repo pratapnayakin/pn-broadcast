@@ -30,6 +30,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Lint runs as its own job, in parallel with the build. A style error
+  # shows up as a red job but must never stop the feeds from deploying.
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
   build-and-deploy:
     environment:
       name: github-pages
@@ -47,7 +68,10 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        # The build needs only rss-parser. Skipping devDependencies keeps
+        # the deploy path free of the linter, so a lint problem can never
+        # block a deploy.
+        run: npm ci --omit=dev
 
       - name: Generate deduplicated feed
         run: node dedup.js
