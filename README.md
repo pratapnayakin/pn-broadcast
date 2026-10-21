@@ -295,6 +295,43 @@ automatically. To remove one: delete the entry. The full every-time checklist
 that adds and removes feeds from the browser - the way other RSS providers
 work. It edits the same `feeds.json`; it just does not make you type JSON.
 
+### Quick start
+
+**One-time setup.** Create a fine-grained token: GitHub -> Settings ->
+Developer settings -> Personal access tokens -> Fine-grained tokens.
+Scope it to this repo only, with **Contents: read and write** and **Pull
+requests: read and write**. Nothing else.
+
+**To add a feed:**
+
+1. Open the manage page, paste the token, press **Load feeds**.
+2. Fill the form:
+   - **Feed title** - the name on the site
+   - **Source type** - Google News search, a direct RSS/JSON URL, or a
+     freehire.me job search
+   - **Search terms** - one phrase per line (for a Google News search)
+   - **Section on the site** - where it belongs. Pick **+ Create a new
+     section...** to make a new one instead
+   - **Also add to bundle** - optional, merges it into a "Breaking" bundle
+   - **Max age in days** - how old items may be
+   - **Exclude these words** - optional noise filter
+   - **Only keep items whose title mentions** - optional, slices a broad
+     source down to one topic
+   - **Push to phone** - optional ntfy notification, with an optional
+     custom topic name
+3. Press **Preview change** to see the new `feeds.json` first, if you like.
+4. Press **Create pull request**.
+5. On GitHub, review the diff and press **Merge**.
+6. The feed is live after the next refresh (within 30 minutes).
+7. Add `https://pratapnayakin.github.io/pn-broadcast/<filename>.xml` to your
+   RSS reader by hand, or re-import `feeds.opml`.
+
+**To remove a feed:** pick the radio button next to it in the table, press
+**Remove selected feed**, then review and merge the pull request as above.
+
+**To change several feeds at once:** every edit joins the same pull request.
+Press **Start a new pull request** when you want a fresh one.
+
 ### How it works
 
 1. You paste a personal access token (once) and press **Load feeds**.
