@@ -19,7 +19,7 @@
       "slug": "odisha",
       "accent": "#2e7d32",
       "full": false,
-      "filenames": ["odisha", "bhubaneswar-crime", "odisha-crime", "odisha-accident", "odisha-weather", "odisha-exams", "odisha-govt", "odisha-power", "odisha-health", "oshb"]
+      "filenames": ["odisha", "bhubaneswar-crime", "odisha-crime", "odisha-accident", "odisha-weather", "odisha-exams", "odisha-govt", "odisha-power", "odisha-health", "oshb", "bhubaneswar-traffic"]
     },
     {
       "label": "AI and WebDev",
@@ -284,6 +284,13 @@
       "title": "Rourkela Power Tariffs",
       "description": "Rourkela Power Tariffs",
       "keywords": ["Rourkela power tariff"],
+      "maxAgeDays": 30
+    },
+    {
+      "filename": "bhubaneswar-traffic",
+      "title": "Bhubaneswar Traffic",
+      "description": "Bhubaneswar Traffic",
+      "keywords": ["Bhubaneswar traffic"],
       "maxAgeDays": 30
     }
   ],
