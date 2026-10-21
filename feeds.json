@@ -1,277 +1,354 @@
 {
-  "feeds": [
-    {
-      "filename": "rourkela",
-      "title": "Rourkela News",
-      "description": "Clean local updates for Rourkela",
-      "maxAgeDays": 30,
-      "keywords": ["Rourkela", "Raurkela"],
-      "exclude": ["gold rate", "gold price", "on road price", "BikeWale", "ZigWheels", "Baleno"]
-    },
-    {
-      "filename": "rourkela-crime",
-      "title": "Rourkela Crime",
-      "description": "Crime and police news from Rourkela and Sundargarh",
-      "maxAgeDays": 14,
-      "url": "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22Sundargarh%22%29%20%28crime%20OR%20arrest%20OR%20murder%20OR%20theft%20OR%20robbery%20OR%20smuggling%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "rourkela-accident",
-      "title": "Rourkela Accidents",
-      "description": "Accident and road news from Rourkela and Sundargarh",
-      "maxAgeDays": 14,
-      "url": "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22Sundargarh%22%29%20%28accident%20OR%20crash%20OR%20mishap%20OR%20%22killed%22%20OR%20dead%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "rourkela-weather",
-      "title": "Rourkela Weather",
-      "description": "Cyclone, rainfall and IMD alerts for Rourkela and Sundargarh",
-      "maxAgeDays": 7,
-      "url": "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22Sundargarh%22%29%20%28cyclone%20OR%20%22low%20pressure%22%20OR%20%22heavy%20rainfall%22%20OR%20IMD%20OR%20flood%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "rourkela-exams",
-      "title": "Rourkela Exams and Results",
-      "description": "Exam notifications, results and recruitment in Rourkela (incl. NIT)",
-      "maxAgeDays": 30,
-      "url": "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22NIT%20Rourkela%22%29%20%28exam%20OR%20result%20OR%20recruitment%20OR%20%22admit%20card%22%29%20-cricket%20-football%20-movie&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "rourkela-govt",
-      "title": "Rourkela Government",
-      "description": "Cabinet decisions, schemes and policy news for Rourkela and Sundargarh",
-      "maxAgeDays": 30,
-      "url": "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22Sundargarh%22%29%20%28cabinet%20OR%20scheme%20OR%20policy%20OR%20ordinance%20OR%20%22new%20rule%22%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "rourkela-power",
-      "title": "Rourkela Power Cuts",
-      "description": "Power cuts and outages in Rourkela and Sundargarh",
-      "maxAgeDays": 7,
-      "url": "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22Sundargarh%22%29%20%28%22power%20cut%22%20OR%20%22power%20outage%22%20OR%20%22power%20shutdown%22%20OR%20%22electricity%20outage%22%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "rourkela-health",
-      "title": "Rourkela Health",
-      "description": "Hospitals, outbreaks and health department news from Rourkela",
-      "maxAgeDays": 14,
-      "url": "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22Sundargarh%22%29%20%28hospital%20OR%20dengue%20OR%20%22health%20department%22%20OR%20outbreak%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "satya-alert",
-      "title": "Satya News Alert (Rourkela)",
-      "description": "Odia-language local news, filtered to Rourkela only",
-      "maxAgeDays": 30,
-      "filter": ["ରାଉରକେଲା", "Rourkela", "Raurkela"],
-      "url": "https://satyanewsalert.in/?feed=rss2"
-    },
-    {
-      "filename": "odisha",
-      "title": "Odisha Headlines",
-      "description": "Top Odisha stories from across the state, deduplicated",
-      "maxAgeDays": 7,
-      "keywords": ["Odisha", "Bhubaneswar", "Cuttack", "Kataka", "Bhanjanagar", "Berhampur", "Brahmapur", "Sambalpur", "Rourkela", "Puri", "Balasore", "ଓଡିଶା"],
-      "exclude": ["gold rate", "gold price", "on road price", "BikeWale", "ZigWheels"]
-    },
-    {
-      "filename": "bhubaneswar-crime",
-      "title": "Bhubaneswar Accidents and Crime",
-      "description": "Accidents, crime and police news from Bhubaneswar",
-      "maxAgeDays": 14,
-      "notify": true,
-      "url": "https://news.google.com/rss/search?q=%28%22Bhubaneswar%22%20OR%20%22Bhubaneshwar%22%29%20%28accident%20OR%20crash%20OR%20crime%20OR%20arrest%20OR%20murder%20OR%20robbery%20OR%20theft%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "odisha-crime",
-      "title": "Odisha Crime",
-      "description": "Crime and police news from across Odisha",
-      "maxAgeDays": 7,
-      "url": "https://news.google.com/rss/search?q=%28%22Odisha%22%20OR%20%22Bhubaneswar%22%20OR%20%22Cuttack%22%20OR%20%22Berhampur%22%29%20%28crime%20OR%20arrest%20OR%20murder%20OR%20theft%20OR%20robbery%20OR%20smuggling%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "odisha-accident",
-      "title": "Odisha Accidents",
-      "description": "Accident and road news from across Odisha",
-      "maxAgeDays": 7,
-      "url": "https://news.google.com/rss/search?q=%28%22Odisha%22%20OR%20%22Bhubaneswar%22%20OR%20%22Cuttack%22%20OR%20%22Berhampur%22%29%20%28accident%20OR%20crash%20OR%20mishap%20OR%20%22killed%22%20OR%20dead%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "odisha-weather",
-      "title": "Odisha Weather",
-      "description": "Cyclone, rainfall and IMD alerts for Odisha",
-      "maxAgeDays": 7,
-      "notify": true,
-      "url": "https://news.google.com/rss/search?q=%28%22Odisha%22%20OR%20%22Bhubaneswar%22%20OR%20%22Cuttack%22%29%20%28cyclone%20OR%20%22low%20pressure%22%20OR%20%22heavy%20rainfall%22%20OR%20IMD%20OR%20flood%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "odisha-exams",
-      "title": "Odisha Exams and Results",
-      "description": "Exam notifications, results and recruitment in Odisha",
-      "maxAgeDays": 14,
-      "url": "https://news.google.com/rss/search?q=%28%22Odisha%22%20OR%20OSSC%20OR%20OSSSC%20OR%20CHSE%20OR%20%22BSE%20Odisha%22%29%20%28exam%20OR%20result%20OR%20recruitment%20OR%20%22admit%20card%22%29%20-cricket%20-football%20-movie&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "odisha-govt",
-      "title": "Odisha Government",
-      "description": "Cabinet decisions, schemes and policy news from Odisha",
-      "maxAgeDays": 14,
-      "notify": true,
-      "url": "https://news.google.com/rss/search?q=%28%22Odisha%22%29%20%28cabinet%20OR%20scheme%20OR%20policy%20OR%20ordinance%20OR%20%22new%20rule%22%20OR%20%22government%20decision%22%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "odisha-power",
-      "title": "Odisha Power Cuts",
-      "description": "Power cuts and outages in Odisha",
-      "maxAgeDays": 14,
-      "url": "https://news.google.com/rss/search?q=%28%22Odisha%22%20OR%20%22Bhubaneswar%22%20OR%20%22Cuttack%22%29%20%28%22power%20cut%22%20OR%20%22power%20outage%22%20OR%20%22power%20shutdown%22%20OR%20%22electricity%20outage%22%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "odisha-health",
-      "title": "Odisha Health",
-      "description": "Hospitals, outbreaks and health department news from Odisha",
-      "maxAgeDays": 14,
-      "url": "https://news.google.com/rss/search?q=%28%22Odisha%22%20OR%20%22Bhubaneswar%22%20OR%20%22Cuttack%22%29%20%28hospital%20OR%20dengue%20OR%20%22health%20department%22%20OR%20outbreak%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "oshb",
-      "title": "OSHB News",
-      "description": "Odisha State Housing Board updates",
-      "maxAgeDays": 30,
-      "url": "https://news.google.com/rss/search?q=%28%22Odisha%20State%20Housing%20Board%22%20OR%20%28OSHB%20AND%20Odisha%29%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "bengaluru-power",
-      "title": "Bengaluru Power Cuts",
-      "description": "Power cuts and outages in Bengaluru",
-      "maxAgeDays": 30,
-      "notify": true,
-      "url": "https://news.google.com/rss/search?q=%28%22Bengaluru%22%20OR%20%22Bangalore%22%29%20%28%22power%20cut%22%20OR%20%22power%20outage%22%20OR%20%22power%20shutdown%22%20OR%20%22power%20supply%20interruption%22%20OR%20%22electricity%20outage%22%29&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "ai-models",
-      "title": "AI Models",
-      "description": "Model releases, benchmarks and open weights",
-      "maxAgeDays": 30,
-      "url": "https://news.google.com/rss/search?q=%28OpenAI%20OR%20Anthropic%20OR%20%22Claude%20AI%22%20OR%20%22Google%20Gemini%22%20OR%20Llama%20OR%20Mistral%20OR%20DeepSeek%20OR%20LLM%20OR%20%22Large%20Language%20Model%22%20OR%20%22Generative%20AI%22%29%20%28release%20OR%20launch%20OR%20%22new%20model%22%20OR%20benchmark%20OR%20leaderboard%20OR%20%22open%20weights%22%20OR%20multimodal%20OR%20agentic%29%20-law%20-degree%20-cryptocurrency%20-university%20-admission%20-movie&hl=en-US&gl=US&ceid=US:en"
-    },
-    {
-      "filename": "ai-safety",
-      "title": "AI Safety",
-      "description": "Jailbreaks, red teaming, prompt injection, regulation and deepfakes",
-      "maxAgeDays": 60,
-      "url": "https://news.google.com/rss/search?q=%28AI%20OR%20LLM%20OR%20OpenAI%20OR%20Anthropic%20OR%20%22Google%20Gemini%22%29%20%28%22AI%20safety%22%20OR%20jailbreak%20OR%20%22red%20team%22%20OR%20%22prompt%20injection%22%20OR%20regulation%20OR%20deepfake%20OR%20misuse%29%20-law%20-degree%20-cryptocurrency%20-university%20-movie&hl=en-US&gl=US&ceid=US:en"
-    },
-    {
-      "filename": "ai-pricing",
-      "title": "AI Pricing",
-      "description": "API cost, inference cost and price changes",
-      "maxAgeDays": 60,
-      "url": "https://news.google.com/rss/search?q=%28LLM%20OR%20OpenAI%20OR%20Anthropic%20OR%20%22Google%20Gemini%22%20OR%20%22Claude%20AI%22%20OR%20%22Generative%20AI%22%29%20%28pricing%20OR%20%22API%20cost%22%20OR%20%22inference%20cost%22%20OR%20%22price%20cut%22%29%20-university%20-degree%20-movie%20-cryptocurrency%20-admission&hl=en-US&gl=US&ceid=US:en"
-    },
-    {
-      "filename": "ai-industry",
-      "title": "AI Industry",
-      "description": "Funding, acquisitions, IPO and lawsuits",
-      "maxAgeDays": 60,
-      "url": "https://news.google.com/rss/search?q=%28OpenAI%20OR%20Anthropic%20OR%20%22Google%20DeepMind%22%20OR%20Mistral%20OR%20%22AI%20startup%22%20OR%20%22AI%20company%22%29%20%28funding%20OR%20acquisition%20OR%20partnership%20OR%20lawsuit%20OR%20IPO%20OR%20valuation%20OR%20%22billion%22%29%20-cryptocurrency%20-movie&hl=en-US&gl=US&ceid=US:en"
-    },
-    {
-      "filename": "webdev-frontend",
-      "title": "WebDev Frontend",
-      "description": "Next.js, React, Tailwind, CSS and web performance",
-      "maxAgeDays": 60,
-      "url": "https://news.google.com/rss/search?q=%28Next.js%20OR%20%22React%20Server%20Components%22%20OR%20%22Core%20Web%20Vitals%22%20OR%20Tailwind%20OR%20CSS%20OR%20%22web%20performance%22%20OR%20%28React%20AND%20%28JavaScript%20OR%20frontend%20OR%20framework%20OR%20component%20OR%20library%20OR%20npm%20OR%20%22open%20source%22%29%29%29%20-football%20-cricket%20-movie%20-%22React%20Native%22%20-%22Counter-Strike%22%20-UPSC&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "webdev-backend",
-      "title": "WebDev Backend",
-      "description": "PostgreSQL, Redis, Prisma, Node.js, GraphQL and MongoDB",
-      "maxAgeDays": 30,
-      "url": "https://news.google.com/rss/search?q=%28PostgreSQL%20OR%20Redis%20OR%20%22Prisma%20ORM%22%20OR%20%22Node.js%22%20OR%20GraphQL%20OR%20MongoDB%20OR%20%22REST%20API%22%29%20-football%20-cricket%20-movie&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "webdev-devops",
-      "title": "WebDev DevOps",
-      "description": "Docker, GitHub Actions, Kubernetes, Terraform and CI/CD",
-      "maxAgeDays": 30,
-      "url": "https://news.google.com/rss/search?q=%28Docker%20OR%20%22GitHub%20Actions%22%20OR%20Kubernetes%20OR%20DevOps%20OR%20Terraform%20OR%20%22CI%2FCD%22%29%20-football%20-cricket%20-movie&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "webdev-security",
-      "title": "WebDev Security",
-      "description": "OWASP, CVEs, data breaches and ransomware",
-      "maxAgeDays": 30,
-      "url": "https://news.google.com/rss/search?q=%28OWASP%20OR%20CVE%20OR%20%22data%20breach%22%20OR%20ransomware%20OR%20%22web%20security%22%20OR%20%22security%20vulnerability%22%29%20-crypto%20-movie&hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "india-tech-jobs",
-      "title": "India Tech Jobs",
-      "description": "Software job openings in India, straight from company career pages",
-      "type": "freehire",
-      "dedupeById": true,
-      "maxAgeDays": 7,
-      "url": "https://freehire.me/api/v1/jobs/search?limit=50&countries=IN&is_tech=tech&posted_within_days=7&sort=posted_at&order=desc"
-    },
-    {
-      "filename": "odisha-jobs",
-      "title": "Odisha and Rourkela Jobs",
-      "description": "Job openings in Odisha and Rourkela, straight from company career pages",
-      "type": "freehire",
-      "dedupeById": true,
-      "maxAgeDays": 14,
-      "url": "https://freehire.me/api/v1/jobs/search?limit=50&countries=IN&q=Rourkela%20OR%20Odisha&sort=posted_at&order=desc"
-    },
-    {
-      "filename": "india-breaking",
-      "title": "India Breaking News",
-      "description": "Top India stories, deduplicated",
-      "maxAgeDays": 3,
-      "url": "https://news.google.com/rss/headlines/section/topic/NATION?hl=en-IN&gl=IN&ceid=IN:en"
-    },
-    {
-      "filename": "world-breaking",
-      "title": "World Breaking News",
-      "description": "Top world stories, deduplicated",
-      "maxAgeDays": 3,
-      "url": "https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-IN&gl=IN&ceid=IN:en"
-    }
-  ],
-  "bundles": [
-    {
-      "filename": "odisha-breaking",
-      "title": "Odisha Breaking - All Alerts",
-      "description": "Every important Odisha story, merged from the category feeds",
-      "maxItems": 300,
-      "sources": ["odisha", "odisha-crime", "odisha-accident", "odisha-weather", "odisha-exams", "odisha-govt", "odisha-power", "odisha-health", "odisha-jobs"]
-    },
-    {
-      "filename": "rourkela-breaking",
-      "title": "Rourkela Breaking - All Alerts",
-      "description": "Every important Rourkela story, merged from the category feeds",
-      "maxItems": 300,
-      "notify": true,
-      "sources": ["rourkela", "rourkela-crime", "rourkela-accident", "rourkela-weather", "rourkela-exams", "rourkela-govt", "rourkela-power", "rourkela-health", "satya-alert"]
-    },
-    {
-      "filename": "ai-breaking",
-      "title": "AI Breaking - All Alerts",
-      "description": "Every AI story, merged from the category feeds",
-      "maxItems": 300,
-      "sources": ["ai-models", "ai-safety", "ai-pricing", "ai-industry"]
-    },
-    {
-      "filename": "webdev-breaking",
-      "title": "WebDev Breaking - All Alerts",
-      "description": "Every web dev story, merged from the category feeds",
-      "maxItems": 300,
-      "sources": ["webdev-frontend", "webdev-backend", "webdev-devops", "webdev-security"]
-    },
-    {
-      "filename": "jobs-breaking",
-      "title": "Jobs Breaking - All Alerts",
-      "description": "Every job posting, merged from the job feeds",
-      "maxItems": 300,
-      "sources": ["india-tech-jobs", "odisha-jobs"]
-    }
-  ]
+    "feeds":  [
+                  {
+                      "filename":  "rourkela",
+                      "title":  "Rourkela News",
+                      "description":  "Clean local updates for Rourkela",
+                      "maxAgeDays":  30,
+                      "keywords":  [
+                                       "Rourkela",
+                                       "Raurkela"
+                                   ],
+                      "exclude":  [
+                                      "gold rate",
+                                      "gold price",
+                                      "on road price",
+                                      "BikeWale",
+                                      "ZigWheels",
+                                      "Baleno"
+                                  ]
+                  },
+                  {
+                      "filename":  "rourkela-crime",
+                      "title":  "Rourkela Crime",
+                      "description":  "Crime and police news from Rourkela and Sundargarh",
+                      "maxAgeDays":  14,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22Sundargarh%22%29%20%28crime%20OR%20arrest%20OR%20murder%20OR%20theft%20OR%20robbery%20OR%20smuggling%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "rourkela-accident",
+                      "title":  "Rourkela Accidents",
+                      "description":  "Accident and road news from Rourkela and Sundargarh",
+                      "maxAgeDays":  14,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22Sundargarh%22%29%20%28accident%20OR%20crash%20OR%20mishap%20OR%20%22killed%22%20OR%20dead%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "rourkela-weather",
+                      "title":  "Rourkela Weather",
+                      "description":  "Cyclone, rainfall and IMD alerts for Rourkela and Sundargarh",
+                      "maxAgeDays":  7,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22Sundargarh%22%29%20%28cyclone%20OR%20%22low%20pressure%22%20OR%20%22heavy%20rainfall%22%20OR%20IMD%20OR%20flood%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "rourkela-exams",
+                      "title":  "Rourkela Exams and Results",
+                      "description":  "Exam notifications, results and recruitment in Rourkela (incl. NIT)",
+                      "maxAgeDays":  30,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22NIT%20Rourkela%22%29%20%28exam%20OR%20result%20OR%20recruitment%20OR%20%22admit%20card%22%29%20-cricket%20-football%20-movie\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "rourkela-govt",
+                      "title":  "Rourkela Government",
+                      "description":  "Cabinet decisions, schemes and policy news for Rourkela and Sundargarh",
+                      "maxAgeDays":  30,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22Sundargarh%22%29%20%28cabinet%20OR%20scheme%20OR%20policy%20OR%20ordinance%20OR%20%22new%20rule%22%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "rourkela-power",
+                      "title":  "Rourkela Power Cuts",
+                      "description":  "Power cuts and outages in Rourkela and Sundargarh",
+                      "maxAgeDays":  7,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22Sundargarh%22%29%20%28%22power%20cut%22%20OR%20%22power%20outage%22%20OR%20%22power%20shutdown%22%20OR%20%22electricity%20outage%22%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "rourkela-health",
+                      "title":  "Rourkela Health",
+                      "description":  "Hospitals, outbreaks and health department news from Rourkela",
+                      "maxAgeDays":  14,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Rourkela%22%20OR%20%22Raurkela%22%20OR%20%22Sundargarh%22%29%20%28hospital%20OR%20dengue%20OR%20%22health%20department%22%20OR%20outbreak%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "satya-alert",
+                      "title":  "Satya News Alert (Rourkela)",
+                      "description":  "Odia-language local news, filtered to Rourkela only",
+                      "maxAgeDays":  30,
+                      "filter":  [
+                                     "ରାଉରକେଲା",
+                                     "Rourkela",
+                                     "Raurkela"
+                                 ],
+                      "url":  "https://satyanewsalert.in/?feed=rss2"
+                  },
+                  {
+                      "filename":  "odisha",
+                      "title":  "Odisha Headlines",
+                      "description":  "Top Odisha stories from across the state, deduplicated",
+                      "maxAgeDays":  7,
+                      "keywords":  [
+                                       "Odisha",
+                                       "Bhubaneswar",
+                                       "Cuttack",
+                                       "Kataka",
+                                       "Bhanjanagar",
+                                       "Berhampur",
+                                       "Brahmapur",
+                                       "Sambalpur",
+                                       "Rourkela",
+                                       "Puri",
+                                       "Balasore",
+                                       "ଓଡିଶା"
+                                   ],
+                      "exclude":  [
+                                      "gold rate",
+                                      "gold price",
+                                      "on road price",
+                                      "BikeWale",
+                                      "ZigWheels"
+                                  ]
+                  },
+                  {
+                      "filename":  "bhubaneswar-crime",
+                      "title":  "Bhubaneswar Accidents and Crime",
+                      "description":  "Accidents, crime and police news from Bhubaneswar",
+                      "maxAgeDays":  14,
+                      "notify":  true,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Bhubaneswar%22%20OR%20%22Bhubaneshwar%22%29%20%28accident%20OR%20crash%20OR%20crime%20OR%20arrest%20OR%20murder%20OR%20robbery%20OR%20theft%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "odisha-crime",
+                      "title":  "Odisha Crime",
+                      "description":  "Crime and police news from across Odisha",
+                      "maxAgeDays":  7,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Odisha%22%20OR%20%22Bhubaneswar%22%20OR%20%22Cuttack%22%20OR%20%22Berhampur%22%29%20%28crime%20OR%20arrest%20OR%20murder%20OR%20theft%20OR%20robbery%20OR%20smuggling%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "odisha-accident",
+                      "title":  "Odisha Accidents",
+                      "description":  "Accident and road news from across Odisha",
+                      "maxAgeDays":  7,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Odisha%22%20OR%20%22Bhubaneswar%22%20OR%20%22Cuttack%22%20OR%20%22Berhampur%22%29%20%28accident%20OR%20crash%20OR%20mishap%20OR%20%22killed%22%20OR%20dead%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "odisha-weather",
+                      "title":  "Odisha Weather",
+                      "description":  "Cyclone, rainfall and IMD alerts for Odisha",
+                      "maxAgeDays":  7,
+                      "notify":  true,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Odisha%22%20OR%20%22Bhubaneswar%22%20OR%20%22Cuttack%22%29%20%28cyclone%20OR%20%22low%20pressure%22%20OR%20%22heavy%20rainfall%22%20OR%20IMD%20OR%20flood%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "odisha-exams",
+                      "title":  "Odisha Exams and Results",
+                      "description":  "Exam notifications, results and recruitment in Odisha",
+                      "maxAgeDays":  14,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Odisha%22%20OR%20OSSC%20OR%20OSSSC%20OR%20CHSE%20OR%20%22BSE%20Odisha%22%29%20%28exam%20OR%20result%20OR%20recruitment%20OR%20%22admit%20card%22%29%20-cricket%20-football%20-movie\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "odisha-govt",
+                      "title":  "Odisha Government",
+                      "description":  "Cabinet decisions, schemes and policy news from Odisha",
+                      "maxAgeDays":  14,
+                      "notify":  true,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Odisha%22%29%20%28cabinet%20OR%20scheme%20OR%20policy%20OR%20ordinance%20OR%20%22new%20rule%22%20OR%20%22government%20decision%22%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "odisha-power",
+                      "title":  "Odisha Power Cuts",
+                      "description":  "Power cuts and outages in Odisha",
+                      "maxAgeDays":  14,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Odisha%22%20OR%20%22Bhubaneswar%22%20OR%20%22Cuttack%22%29%20%28%22power%20cut%22%20OR%20%22power%20outage%22%20OR%20%22power%20shutdown%22%20OR%20%22electricity%20outage%22%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "odisha-health",
+                      "title":  "Odisha Health",
+                      "description":  "Hospitals, outbreaks and health department news from Odisha",
+                      "maxAgeDays":  14,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Odisha%22%20OR%20%22Bhubaneswar%22%20OR%20%22Cuttack%22%29%20%28hospital%20OR%20dengue%20OR%20%22health%20department%22%20OR%20outbreak%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "oshb",
+                      "title":  "OSHB News",
+                      "description":  "Odisha State Housing Board updates",
+                      "maxAgeDays":  30,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Odisha%20State%20Housing%20Board%22%20OR%20%28OSHB%20AND%20Odisha%29%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "bengaluru-power",
+                      "title":  "Bengaluru Power Cuts",
+                      "description":  "Power cuts and outages in Bengaluru",
+                      "maxAgeDays":  30,
+                      "notify":  true,
+                      "url":  "https://news.google.com/rss/search?q=%28%22Bengaluru%22%20OR%20%22Bangalore%22%29%20%28%22power%20cut%22%20OR%20%22power%20outage%22%20OR%20%22power%20shutdown%22%20OR%20%22power%20supply%20interruption%22%20OR%20%22electricity%20outage%22%29\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "ai-models",
+                      "title":  "AI Models",
+                      "description":  "Model releases, benchmarks and open weights",
+                      "maxAgeDays":  30,
+                      "url":  "https://news.google.com/rss/search?q=%28OpenAI%20OR%20Anthropic%20OR%20%22Claude%20AI%22%20OR%20%22Google%20Gemini%22%20OR%20Llama%20OR%20Mistral%20OR%20DeepSeek%20OR%20LLM%20OR%20%22Large%20Language%20Model%22%20OR%20%22Generative%20AI%22%29%20%28release%20OR%20launch%20OR%20%22new%20model%22%20OR%20benchmark%20OR%20leaderboard%20OR%20%22open%20weights%22%20OR%20multimodal%20OR%20agentic%29%20-law%20-degree%20-cryptocurrency%20-university%20-admission%20-movie\u0026hl=en-US\u0026gl=US\u0026ceid=US:en"
+                  },
+                  {
+                      "filename":  "ai-safety",
+                      "title":  "AI Safety",
+                      "description":  "Jailbreaks, red teaming, prompt injection, regulation and deepfakes",
+                      "maxAgeDays":  60,
+                      "url":  "https://news.google.com/rss/search?q=%28AI%20OR%20LLM%20OR%20OpenAI%20OR%20Anthropic%20OR%20%22Google%20Gemini%22%29%20%28%22AI%20safety%22%20OR%20jailbreak%20OR%20%22red%20team%22%20OR%20%22prompt%20injection%22%20OR%20regulation%20OR%20deepfake%20OR%20misuse%29%20-law%20-degree%20-cryptocurrency%20-university%20-movie\u0026hl=en-US\u0026gl=US\u0026ceid=US:en"
+                  },
+                  {
+                      "filename":  "ai-pricing",
+                      "title":  "AI Pricing",
+                      "description":  "API cost, inference cost and price changes",
+                      "maxAgeDays":  60,
+                      "url":  "https://news.google.com/rss/search?q=%28LLM%20OR%20OpenAI%20OR%20Anthropic%20OR%20%22Google%20Gemini%22%20OR%20%22Claude%20AI%22%20OR%20%22Generative%20AI%22%29%20%28pricing%20OR%20%22API%20cost%22%20OR%20%22inference%20cost%22%20OR%20%22price%20cut%22%29%20-university%20-degree%20-movie%20-cryptocurrency%20-admission\u0026hl=en-US\u0026gl=US\u0026ceid=US:en"
+                  },
+                  {
+                      "filename":  "ai-industry",
+                      "title":  "AI Industry",
+                      "description":  "Funding, acquisitions, IPO and lawsuits",
+                      "maxAgeDays":  60,
+                      "url":  "https://news.google.com/rss/search?q=%28OpenAI%20OR%20Anthropic%20OR%20%22Google%20DeepMind%22%20OR%20Mistral%20OR%20%22AI%20startup%22%20OR%20%22AI%20company%22%29%20%28funding%20OR%20acquisition%20OR%20partnership%20OR%20lawsuit%20OR%20IPO%20OR%20valuation%20OR%20%22billion%22%29%20-cryptocurrency%20-movie\u0026hl=en-US\u0026gl=US\u0026ceid=US:en"
+                  },
+                  {
+                      "filename":  "webdev-frontend",
+                      "title":  "WebDev Frontend",
+                      "description":  "Next.js, React, Tailwind, CSS and web performance",
+                      "maxAgeDays":  60,
+                      "url":  "https://news.google.com/rss/search?q=%28Next.js%20OR%20%22React%20Server%20Components%22%20OR%20%22Core%20Web%20Vitals%22%20OR%20Tailwind%20OR%20CSS%20OR%20%22web%20performance%22%20OR%20%28React%20AND%20%28JavaScript%20OR%20frontend%20OR%20framework%20OR%20component%20OR%20library%20OR%20npm%20OR%20%22open%20source%22%29%29%29%20-football%20-cricket%20-movie%20-%22React%20Native%22%20-%22Counter-Strike%22%20-UPSC\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "webdev-backend",
+                      "title":  "WebDev Backend",
+                      "description":  "PostgreSQL, Redis, Prisma, Node.js, GraphQL and MongoDB",
+                      "maxAgeDays":  30,
+                      "url":  "https://news.google.com/rss/search?q=%28PostgreSQL%20OR%20Redis%20OR%20%22Prisma%20ORM%22%20OR%20%22Node.js%22%20OR%20GraphQL%20OR%20MongoDB%20OR%20%22REST%20API%22%29%20-football%20-cricket%20-movie\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "webdev-devops",
+                      "title":  "WebDev DevOps",
+                      "description":  "Docker, GitHub Actions, Kubernetes, Terraform and CI/CD",
+                      "maxAgeDays":  30,
+                      "url":  "https://news.google.com/rss/search?q=%28Docker%20OR%20%22GitHub%20Actions%22%20OR%20Kubernetes%20OR%20DevOps%20OR%20Terraform%20OR%20%22CI%2FCD%22%29%20-football%20-cricket%20-movie\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "webdev-security",
+                      "title":  "WebDev Security",
+                      "description":  "OWASP, CVEs, data breaches and ransomware",
+                      "maxAgeDays":  30,
+                      "url":  "https://news.google.com/rss/search?q=%28OWASP%20OR%20CVE%20OR%20%22data%20breach%22%20OR%20ransomware%20OR%20%22web%20security%22%20OR%20%22security%20vulnerability%22%29%20-crypto%20-movie\u0026hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "india-tech-jobs",
+                      "title":  "India Tech Jobs",
+                      "description":  "Software job openings in India, straight from company career pages",
+                      "type":  "freehire",
+                      "dedupeById":  true,
+                      "maxAgeDays":  7,
+                      "url":  "https://freehire.me/api/v1/jobs/search?limit=50\u0026countries=IN\u0026is_tech=tech\u0026posted_within_days=7\u0026sort=posted_at\u0026order=desc"
+                  },
+                  {
+                      "filename":  "odisha-jobs",
+                      "title":  "Odisha and Rourkela Jobs",
+                      "description":  "Job openings in Odisha and Rourkela, straight from company career pages",
+                      "type":  "freehire",
+                      "dedupeById":  true,
+                      "maxAgeDays":  14,
+                      "url":  "https://freehire.me/api/v1/jobs/search?limit=50\u0026countries=IN\u0026q=Rourkela%20OR%20Odisha\u0026sort=posted_at\u0026order=desc"
+                  },
+                  {
+                      "filename":  "india-breaking",
+                      "title":  "India Breaking News",
+                      "description":  "Top India stories, deduplicated",
+                      "maxAgeDays":  3,
+                      "url":  "https://news.google.com/rss/headlines/section/topic/NATION?hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "world-breaking",
+                      "title":  "World Breaking News",
+                      "description":  "Top world stories, deduplicated",
+                      "maxAgeDays":  3,
+                      "url":  "https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-IN\u0026gl=IN\u0026ceid=IN:en"
+                  },
+                  {
+                      "filename":  "ui-smoke-test",
+                      "title":  "UI Smoke Test",
+                      "description":  "smoke",
+                      "keywords":  [
+                                       "Rourkela test"
+                                   ]
+                  }
+              ],
+    "bundles":  [
+                    {
+                        "filename":  "odisha-breaking",
+                        "title":  "Odisha Breaking - All Alerts",
+                        "description":  "Every important Odisha story, merged from the category feeds",
+                        "maxItems":  300,
+                        "sources":  [
+                                        "odisha",
+                                        "odisha-crime",
+                                        "odisha-accident",
+                                        "odisha-weather",
+                                        "odisha-exams",
+                                        "odisha-govt",
+                                        "odisha-power",
+                                        "odisha-health",
+                                        "odisha-jobs"
+                                    ]
+                    },
+                    {
+                        "filename":  "rourkela-breaking",
+                        "title":  "Rourkela Breaking - All Alerts",
+                        "description":  "Every important Rourkela story, merged from the category feeds",
+                        "maxItems":  300,
+                        "notify":  true,
+                        "sources":  [
+                                        "rourkela",
+                                        "rourkela-crime",
+                                        "rourkela-accident",
+                                        "rourkela-weather",
+                                        "rourkela-exams",
+                                        "rourkela-govt",
+                                        "rourkela-power",
+                                        "rourkela-health",
+                                        "satya-alert"
+                                    ]
+                    },
+                    {
+                        "filename":  "ai-breaking",
+                        "title":  "AI Breaking - All Alerts",
+                        "description":  "Every AI story, merged from the category feeds",
+                        "maxItems":  300,
+                        "sources":  [
+                                        "ai-models",
+                                        "ai-safety",
+                                        "ai-pricing",
+                                        "ai-industry"
+                                    ]
+                    },
+                    {
+                        "filename":  "webdev-breaking",
+                        "title":  "WebDev Breaking - All Alerts",
+                        "description":  "Every web dev story, merged from the category feeds",
+                        "maxItems":  300,
+                        "sources":  [
+                                        "webdev-frontend",
+                                        "webdev-backend",
+                                        "webdev-devops",
+                                        "webdev-security"
+                                    ]
+                    },
+                    {
+                        "filename":  "jobs-breaking",
+                        "title":  "Jobs Breaking - All Alerts",
+                        "description":  "Every job posting, merged from the job feeds",
+                        "maxItems":  300,
+                        "sources":  [
+                                        "india-tech-jobs",
+                                        "odisha-jobs"
+                                    ]
+                    }
+                ],
+    "categories":  [
+
+                   ]
 }
