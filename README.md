@@ -118,6 +118,8 @@ how feeds are added without editing JSON.
 | `.github/workflows/tick.yml` | The metronome: keeps the 30-minute refresh on a fixed grid. |
 | `notify.js` | Push notifications: finds new items since the last run and posts them to ntfy.sh. |
 | `eslint.config.js` | The coding standard, enforced by `npm run lint`. |
+| `LICENSE` | All rights reserved. The repo is published for viewing, not for reuse. |
+| `.gitattributes` | Pins LF line endings so checkouts are identical on every OS. |
 | `package.json` | Declares the runtime dependency (`rss-parser`), the dev tooling (`eslint`), and the `npm start` / `npm test` / `npm run lint` scripts. |
 | `package-lock.json` | Pins exact dependency versions. Required by `npm ci` in the workflow. **Must be committed.** |
 | `.gitignore` | Keeps `node_modules/` and `public/` out of git (both are generated/restored). |
@@ -705,8 +707,9 @@ Read this section honestly - these are the edges of the system.
 
 - `public/` and `node_modules/` are gitignored on purpose. Never commit them.
 - `index.html` only contains feeds that succeeded in that particular run.
-- On Windows, git prints harmless `LF will be replaced by CRLF` warnings.
-  Ignore them.
+- Line endings are LF everywhere, enforced by `.gitattributes`, so the
+  "LF will be replaced by CRLF" warning git prints on Windows no longer
+  appears and diffs stay clean across machines.
 - Node 20 reached end-of-life in April 2026; the workflow pins Node 22 on
   purpose.
 

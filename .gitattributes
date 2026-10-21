@@ -1,0 +1,15 @@
+# Keep line endings stable across machines. The repo stores LF; Windows
+# checkouts stay LF too, so the "LF will be replaced by CRLF" warning that
+# git prints on Windows does not appear and diffs stay clean.
+* text=auto eol=lf
+
+# These are binary - git must not touch their bytes.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.gz binary
