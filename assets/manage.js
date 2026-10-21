@@ -1,8 +1,15 @@
-// The manage page: add and remove feeds from the browser.
-//
-// The pure logic (building a feed entry, applying it to a config, writing
-// the config back out) lives in manage-core.js so it can be unit tested.
-// This file is the browser half: DOM wiring and the GitHub API calls.
+/**
+ * manage.js
+ * ---------
+ * The manage page: add and remove feeds from the browser.
+ *
+ * Reads feeds.json through the GitHub API, applies the change, then opens a
+ * branch and a pull request. The user reviews the diff and merges it.
+ *
+ * The pure logic (building a feed entry, applying it to a config, writing
+ * the config back out) lives in manage-core.js so it can be unit tested.
+ * This file is the browser half: DOM wiring and the GitHub API calls.
+ */
 
 import {
   NEW_SECTION,
@@ -90,7 +97,9 @@ const api = async (path, { method = 'GET', body } = {}) => {
   return data;
 };
 
-// ---------------------------------------------------------------- connect
+// ---------------------------------------------------------------------------
+// Connect
+// ---------------------------------------------------------------------------
 
 $('connect').addEventListener('click', async () => {
   state.token = tokenInput.value.trim();
@@ -130,7 +139,9 @@ $('connect').addEventListener('click', async () => {
   }
 });
 
-// ---------------------------------------------------------------- pickers
+// ---------------------------------------------------------------------------
+// Pickers
+// ---------------------------------------------------------------------------
 
 const fillPickers = (keepSection) => {
   const sec = $('section');
@@ -164,7 +175,9 @@ const syncSection = () => {
 };
 $('section').addEventListener('change', syncSection);
 
-// ---------------------------------------------------------------- list
+// ---------------------------------------------------------------------------
+// List
+// ---------------------------------------------------------------------------
 
 /** The section a feed currently sits in. */
 const sectionOf = (filename) => {
@@ -209,7 +222,9 @@ const renderList = () => {
   }
 };
 
-// ---------------------------------------------------------------- form
+// ---------------------------------------------------------------------------
+// Form
+// ---------------------------------------------------------------------------
 
 /** The current form values, in the shape buildEntry expects. */
 const formValues = () => ({
@@ -237,7 +252,9 @@ const applyForm = () =>
     }
   );
 
-// ---------------------------------------------------------------- preview
+// ---------------------------------------------------------------------------
+// Preview
+// ---------------------------------------------------------------------------
 
 $('preview').addEventListener('click', () => {
   hide($('saveMsg'));
@@ -255,7 +272,9 @@ $('preview').addEventListener('click', () => {
   }
 });
 
-// ---------------------------------------------------------------- commit
+// ---------------------------------------------------------------------------
+// Commit
+// ---------------------------------------------------------------------------
 
 /**
  * Pushes a changed feeds.json onto the working branch and keeps one pull
@@ -322,7 +341,9 @@ const pushChange = async (cfg, commitMessage, title, note) => {
   return state.prUrl;
 };
 
-// ---------------------------------------------------------------- save
+// ---------------------------------------------------------------------------
+// Save
+// ---------------------------------------------------------------------------
 
 $('save').addEventListener('click', async () => {
   hide($('saveMsg'));
@@ -378,7 +399,9 @@ $('save').addEventListener('click', async () => {
   }
 });
 
-// ---------------------------------------------------------------- remove
+// ---------------------------------------------------------------------------
+// Remove
+// ---------------------------------------------------------------------------
 
 $('removeBtn').addEventListener('click', async () => {
   hide($('removeMsg'));
@@ -412,7 +435,9 @@ $('removeBtn').addEventListener('click', async () => {
   }
 });
 
-// ---------------------------------------------------------------- reset
+// ---------------------------------------------------------------------------
+// Reset
+// ---------------------------------------------------------------------------
 
 $('reset').addEventListener('click', () => {
   // Start over: forget the open pull request and reload the live config.
@@ -427,7 +452,9 @@ $('reset').addEventListener('click', () => {
   $('connect').click();
 });
 
-// ---------------------------------------------------------------- kind toggle
+// ---------------------------------------------------------------------------
+// Kind Toggle
+// ---------------------------------------------------------------------------
 
 const syncKind = () => {
   const kind = $('kind').value;

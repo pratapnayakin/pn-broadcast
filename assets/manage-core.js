@@ -1,12 +1,16 @@
-// Pure logic for the manage page: turning form input into a feeds.json
-// entry, and applying that entry to a config.
-//
-// Nothing here touches the DOM or the network, so it can be unit tested
-// directly (see test.js). The browser code in manage.js imports it.
-//
-// This file is an ES module. The repo's package.json has no "type" field,
-// so assets/package.json marks this folder as ESM for Node. That lets
-// test.js require() it while the browser loads it with import.
+/**
+ * manage-core.js
+ * --------------
+ * Pure logic for the manage page: turning form input into a feeds.json
+ * entry, and applying that entry to a config.
+ *
+ * Nothing here touches the DOM or the network, so it can be unit tested
+ * directly (see test.js). The browser code in manage.js imports it.
+ *
+ * The repo's package.json has no "type" field, so assets/package.json
+ * marks this folder as ESM for Node. That lets test.js require() it while
+ * the browser loads it with import.
+ */
 
 /** Sentinel value for the "create a new section" option in the picker. */
 export const NEW_SECTION = '__new_section__';
