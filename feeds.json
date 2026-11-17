@@ -40,7 +40,7 @@
       "slug": "india-and-world",
       "accent": "#6a1b9a",
       "full": false,
-      "filenames": ["india-breaking", "world-breaking", "bengaluru-power"]
+      "filenames": ["india-breaking", "world-breaking", "bengaluru-power", "irctc-special-train"]
     }
   ],
   "feeds": [
@@ -278,6 +278,13 @@
       "description": "Top world stories, deduplicated",
       "maxAgeDays": 3,
       "url": "https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-IN&gl=IN&ceid=IN:en"
+    },
+    {
+      "filename": "irctc-special-train",
+      "title": "IRCTC Special Train",
+      "description": "Special and festival special trains announced by Indian Railways",
+      "maxAgeDays": 14,
+      "url": "https://news.google.com/rss/search?q=%28%22special+train%22+OR+%22IRCTC+special%22%29+%28railway+OR+railways+OR+IRCTC%29+-stock+-price&hl=en-IN&gl=IN&ceid=IN%3Aen"
     }
   ],
   "bundles": [
