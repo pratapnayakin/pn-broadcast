@@ -284,7 +284,7 @@
       "title": "IRCTC Special Train",
       "description": "Special and festival special trains announced by Indian Railways",
       "maxAgeDays": 14,
-      "url": "https://news.google.com/rss/search?q=%28%22special+train%22+OR+%22IRCTC+special%22%29+%28railway+OR+railways+OR+IRCTC%29+-stock+-price&hl=en-IN&gl=IN&ceid=IN%3Aen"
+      "url": "https://news.google.com/rss/search?q=%28%22special+train%22+OR+%22IRCTC+special%22%29+%28railway+OR+railways+OR+IRCTC+OR+%22Indian+Railways%22%29+-stock+-price+-Nepal+-Bangladesh+-Pakistan+-%22Sri+Lanka%22+-Bhutan+-Myanmar+-Malaysia+-Singapore+-Thailand+-London+-Paris+-Dubai+-Qatar+-Australia+-Canada+-USA+-UK+-Europe&hl=en-IN&gl=IN&ceid=IN%3Aen"
     }
   ],
   "bundles": [
